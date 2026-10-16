@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, HttpException, HttpStatus, Inje
 import { ConfigService } from "@nestjs/config";
 import * as argon2 from "argon2";
 import { createHash, randomBytes } from "node:crypto";
-import { Prisma, UserStatus } from "@prisma/client";
+import { AccountAudience, Prisma, UserStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
@@ -14,12 +14,12 @@ export class AuthService {
   constructor(private readonly prisma: PrismaService, private readonly config: ConfigService) {}
   cookieName(): string { return this.config.getOrThrow<string>("SESSION_COOKIE_NAME"); }
   cookieSecure(): boolean { return this.config.get<string>("NODE_ENV") === "production"; }
-  async register(email: string, password: string, displayName?: string) {
+  async register(email: string, password: string, displayName?: string, accountAudience: AccountAudience = AccountAudience.CUSTOMER) {
     const emailNormalized = normalizeEmail(email);
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
     try {
       const user = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.user.create({ data: { email: email.trim(), emailNormalized, displayName } });
+        const created = await tx.user.create({ data: { email: email.trim(), emailNormalized, displayName, accountAudience } });
         await tx.credential.create({ data: { userId: created.id, passwordHash } });
         return created;
       });
@@ -54,13 +54,13 @@ export class AuthService {
       await this.prisma.authLoginThrottle.updateMany({ where: { key }, data: { blockedUntil: new Date(now.getTime() + intervalMs) } });
     }
   }
-  async login(email: string, password: string, ip = "unknown") {
+  async login(email: string, password: string, ip = "unknown", audience: AccountAudience = AccountAudience.CUSTOMER) {
     const normalized = normalizeEmail(email);
     const accountKey = this.key("login-account-ip", normalized + ":" + ip);
     const ipKey = this.key("login-ip", ip);
     await this.checkThrottle([accountKey, ipKey]);
     const user = await this.prisma.user.findUnique({ where: { emailNormalized: normalized }, include: { credential: true } });
-    if (!user?.credential || user.status !== UserStatus.ACTIVE || !(await argon2.verify(user.credential.passwordHash, password))) {
+    if (!user?.credential || user.accountAudience !== audience || user.status !== UserStatus.ACTIVE || !(await argon2.verify(user.credential.passwordHash, password))) {
       await Promise.all([this.recordFailure(accountKey, 5, 15 * 60_000), this.recordFailure(ipKey, 50, 15 * 60_000)]);
       throw new UnauthorizedException("Invalid email or password");
     }
@@ -69,8 +69,8 @@ export class AuthService {
     await this.prisma.$transaction(async tx => {
       await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "User" WHERE "id" = ${user.id}::uuid FOR UPDATE`);
       const current = await tx.credential.findUnique({ where: { userId: user.id } });
-      const active = await tx.user.findUnique({ where: { id: user.id }, select: { status: true } });
-      if (current?.passwordHash !== user.credential!.passwordHash || active?.status !== UserStatus.ACTIVE) throw new UnauthorizedException("Invalid email or password");
+      const active = await tx.user.findUnique({ where: { id: user.id }, select: { status: true, accountAudience: true } });
+      if (current?.passwordHash !== user.credential!.passwordHash || (active?.status !== UserStatus.ACTIVE || active?.accountAudience !== audience)) throw new UnauthorizedException("Invalid email or password");
       await tx.session.create({ data: { userId: user.id, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60_000) } });
     });
     await this.prisma.authLoginThrottle.deleteMany({ where: { key: accountKey } });
@@ -151,10 +151,10 @@ export class AuthService {
     const session = await this.prisma.session.findUnique({ where: { tokenHash: hashToken(token) }, include: { user: true } });
     if (!session || session.revokedAt || session.expiresAt <= new Date() || session.user.status !== UserStatus.ACTIVE) throw new UnauthorizedException();
     await this.prisma.session.update({ where: { id: session.id }, data: { lastSeenAt: new Date() } });
-    return { user: { id: session.user.id, email: session.user.email, displayName: session.user.displayName }, sessionId: session.id };
+    return { user: { id: session.user.id, email: session.user.email, displayName: session.user.displayName, accountAudience: session.user.accountAudience }, sessionId: session.id };
   }
   async sessionContext(userId: string) {
-    const [organizations, platformRoles] = await this.prisma.$transaction([
+    const [organizations, platformRoles, identity] = await this.prisma.$transaction([
       this.prisma.organizationMembership.findMany({
         where: { userId, status: "ACTIVE", organization: { status: "ACTIVE" } },
         include: { organization: true, roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } },
@@ -164,8 +164,10 @@ export class AuthService {
         where: { userId },
         include: { role: { include: { permissions: { include: { permission: true } } } } },
       }),
+      this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { accountAudience: true } }),
     ]);
     return {
+      accountAudience: identity.accountAudience,
       organizations: organizations.map((membership) => ({
         id: membership.organization.id,
         name: membership.organization.name,

@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AccountAudience {
+  CUSTOMER
+  WORKFORCE
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -337,6 +342,7 @@ model User {
   id                       String                       @id @default(uuid()) @db.Uuid
   email                    String
   emailNormalized          String                       @unique
+  accountAudience          AccountAudience              @default(CUSTOMER)
   displayName              String?
   status                   UserStatus                   @default(ACTIVE)
   emailVerifiedAt          DateTime?

@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { AccountAudience, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCustomerAddressDto, UpdateCustomerAddressDto, UpdateCustomerProfileDto } from "./dto/customer.dto";
 
@@ -9,6 +9,8 @@ export class CustomerService {
 
   // Canonical lazy customer-commerce identity seam.
   async ensureCustomerProfile(userId: string) {
+    const owner = await this.prisma.user.findUnique({ where: { id: userId }, select: { accountAudience: true } });
+    if (owner?.accountAudience !== AccountAudience.CUSTOMER) throw new ForbiddenException("Customer account required");
     const existing = await this.prisma.customerProfile.findUnique({ where: { userId } });
     if (existing) return existing;
     try { return await this.prisma.customerProfile.create({ data: { userId } }); }

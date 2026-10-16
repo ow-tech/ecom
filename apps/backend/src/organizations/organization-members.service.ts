@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { MembershipStatus, Prisma, RoleScope, UserStatus } from "@prisma/client";
+import { AccountAudience, MembershipStatus, Prisma, RoleScope, UserStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 
@@ -60,8 +60,8 @@ export class OrganizationMembersService {
       return await this.prisma.$transaction(async tx => {
         await this.managed(tx, actorId, organizationId);
         const role = await this.role(tx, roleKey);
-        const recipient = await tx.user.findUnique({ where: { emailNormalized: email.trim().toLowerCase() }, select: { id: true, status: true } });
-        if (!recipient || recipient.status !== UserStatus.ACTIVE) throw new NotFoundException("Staff member must register an active Ecom account first");
+        const recipient = await tx.user.findUnique({ where: { emailNormalized: email.trim().toLowerCase() }, select: { id: true, status: true, accountAudience: true } });
+        if (!recipient || recipient.accountAudience !== AccountAudience.WORKFORCE || recipient.status !== UserStatus.ACTIVE) throw new NotFoundException("Staff member must register an active Ecom account first");
         if (recipient.id === actorId) throw new ForbiddenException("Cannot invite yourself");
         const previous = await tx.organizationMembership.findUnique({ where: { organizationId_userId: { organizationId, userId: recipient.id } } });
         if (previous && previous.status !== MembershipStatus.REMOVED) throw new ConflictException("Staff membership or invitation already exists");
@@ -78,6 +78,8 @@ export class OrganizationMembersService {
     }
   }
   async accept(userId: string, membershipId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { accountAudience: true } });
+    if (user?.accountAudience !== AccountAudience.WORKFORCE) throw new ForbiddenException("Workforce account required");
     const membership = await this.prisma.organizationMembership.findFirst({
       where: { id: membershipId, userId, organization: { status: "ACTIVE" } },
       select: { id: true, organizationId: true, status: true },
