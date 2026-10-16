@@ -1,5 +1,7 @@
 # ECOM administrative identities, email invitations and head-admin management
 
+**Master roadmap:** [../IMPLEMENTATION_ROADMAP.md](../IMPLEMENTATION_ROADMAP.md), Phases 1–3. This file remains the authoritative detailed implementation contract for those three security phases.
+
 **Status: PLANNED — NOT IMPLEMENTED.** This is a source-grounded implementation contract, not proof that these restrictions currently apply. Target: `ow-tech/ecom` `dev`. Implement in the dependency order below and complete backend/database, frontend, regression checks and documentation per vertical. No production data changes were made during planning.
 
 ## Business requirements

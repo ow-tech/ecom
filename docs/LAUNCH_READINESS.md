@@ -26,6 +26,10 @@
 | Deployment and TLS | LAUNCH_BLOCKER | Deployment/Nginx/TLS remain deferred. |
 | Git release integrity | RELEASE_VERIFICATION_REQUIRED | Direct commits to GitHub `dev` and GitHub Actions verification are available. Tagged production release, rollback and provenance process still pending. |
 
+## Planned implementation and launch dependencies
+
+Use [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md) for Phases 1–3 (exclusive customer/staff identity, supplier email invitations and head-admin directory) followed by items 13 and 15–20. Identity isolation and production deployment/backup verification are security and release blockers; CRM, full accounting, overseas sourcing and advanced marketing remain scope-dependent milestones unless the product owner explicitly requires them for the first launch. Do not claim that an indexed phase has been implemented.
+
 ## Required before launch
 
 Verify authenticated customer/supplier/platform browser flows at 375px,

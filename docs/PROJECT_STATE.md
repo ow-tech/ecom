@@ -28,6 +28,10 @@ An opt-in persistent QA workflow is available through `pnpm qa:up`. It uses an
 isolated Compose project/database (`ecom-qa` / `ecom_local_qa`), guarded,
 idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LOCAL.md).
 
+## Master roadmap and execution order
+
+The active implementation plan is [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md). Phases 1–3 cover exclusive customer/workforce emails, supplier-owner/admin role-based email invitations, and a protected platform head-admin/staff directory. The roadmap then tracks notifications (13), overseas sourcing (15), CRM (16), accounting/expenses (17), analytics (18), CMS/marketing/SEO (19), while production infrastructure (20) starts in parallel. A roadmap entry is a plan, not verified runtime functionality.
+
 ## Next planned identity/administration delivery
 
 Customer/admin email separation, email-based staff onboarding and the platform head-admin management interface are NOT IMPLEMENTED. Follow [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md) in order: conflict preflight and account-audience boundaries → supplier admin delegation/invitation email → super/head-admin hierarchy and platform staff UI. Do not grant `organization.members.manage` broadly to supplier admins; it currently also controls sensitive payout-destination writes.
