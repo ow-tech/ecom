@@ -330,6 +330,10 @@ describe("supplier domain integration", () => {
     expect((await http("PATCH", `/platform/suppliers/${supplierRow.id}/overseas-shipping`, { enabled: true }, owner.cookie)).status).toBe(403);
     const blocked = await http("POST", `/organizations/${org.id}/listings`, params, owner.cookie);
     expect(blocked.status).toBe(409);
+    await expect(prisma.supplierListing.create({ data: {
+      supplierId: supplierRow.id, productId: product.id, price: new Prisma.Decimal("12500"),
+      currencyCode: "KES", origin: "OVERSEAS", deliveryMinDays: 14, deliveryMaxDays: 21, overseasOrderable: 3,
+    } })).rejects.toThrow();
     await makePlatformAdmin(root.id);
     expect((await http("PATCH", `/platform/suppliers/${supplierRow.id}/overseas-shipping`, { enabled: true }, root.cookie)).status).toBe(200);
     const created = await http("POST", `/organizations/${org.id}/listings`, params, owner.cookie);
@@ -360,11 +364,18 @@ describe("supplier domain integration", () => {
     await prisma.$transaction(tx => stock.consumeOwned(tx, first.id, crypto.randomUUID(), new Date()));
     const committed = await prisma.supplierListing.findUniqueOrThrow({ where: { id: listingId } });
     expect([committed.overseasReserved, committed.overseasCommitted]).toEqual([0, 2]);
+    await expect(prisma.$transaction(tx => stock.consumeOwned(tx, first.id, crypto.randomUUID(), new Date()))).rejects.toThrow();
+    expect((await prisma.supplierListing.findUniqueOrThrow({ where: { id: listingId } })).overseasCommitted).toBe(2);
     expect(await prisma.inventoryItem.count({ where: { supplierListingId: listingId } })).toBe(0);
     const third = await makeOrder("overseas-release");
     await prisma.$transaction(tx => stock.allocateOwned(tx, listingId, 1, third.checkoutAttemptId, third.id, new Date(Date.now() + 30000)));
     await prisma.$transaction(tx => stock.releaseOwned(tx, third.id, new Date()));
     expect((await availability.resolve(listingId))?.availableQuantity).toBe(1);
+    const fourth = await makeOrder("overseas-expire");
+    await prisma.$transaction(tx => stock.allocateOwned(tx, listingId, 1, fourth.checkoutAttemptId, fourth.id, new Date(Date.now() - 1000)));
+    await prisma.$transaction(tx => stock.expireOwned(tx, fourth.id, new Date()));
+    expect((await availability.resolve(listingId))?.availableQuantity).toBe(1);
+    expect((await prisma.overseasReservation.findFirstOrThrow({ where: { orderId: fourth.id } })).status).toBe("EXPIRED");
     expect((await http("PATCH", `/platform/suppliers/${supplierRow.id}/overseas-shipping`, { enabled: false }, root.cookie)).status).toBe(200);
     expect((await availability.resolve(listingId))?.eligible).toBe(false);
     expect((await prisma.supplierListing.findUniqueOrThrow({ where: { id: listingId } })).overseasCommitted).toBe(2);
