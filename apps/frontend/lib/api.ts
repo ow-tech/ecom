@@ -63,7 +63,7 @@ export type CreatePayoutDestination = {
   type: "BANK" | "MPESA"; currencyCode: string; accountHolderName: string; bankName?: string;
   bankCountryCode?: string; iban?: string; accountNumber?: string; swiftBic?: string; mpesaPhone?: string;
 };
-export type PlatformSettlement = { id: string; supplierId: string; status: "DRAFT" | "APPROVED" | "PAID" | string; currencyCode: string; netAmount: string; createdAt: string; externalReference?: string | null };
+export type PlatformSettlement = { id: string; supplierId: string; status: "DRAFT" | "APPROVED" | "PAID" | string; currencyCode: string; netAmount: string; payoutDestinationId?: string | null; createdAt: string; externalReference?: string | null };
 export type DeliveryOperationsPage = {
   data: Array<{ id: string; orderNumber: string; status: string; paymentStatus: "PAID"; fulfillmentMethod: "DELIVERY" | "PICKUP"; currencyCode: string; total: string; createdAt: string; updatedAt: string; pickupSnapshot: { name: string; city: string } | null; deliveryAddress: { region: string; city: string } | null; supplierOrders: Array<{ id: string; status: string; supplier: { displayName: string } }> }>;
   total: number; page: number; limit: number;
