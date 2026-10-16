@@ -2,6 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { api, type PlatformSettlement, type PayoutDestination, type RevealedPayoutDestination } from "../lib/api";
+import { PlatformCommissionManagement } from "./platform-commission-management";
 import { Alert, Button, Card, EmptyState, ErrorState, FormField, Input, Money, SectionHeader, Select, Skeleton, StatusBadge } from "./ui";
 
 type Supplier = { id: string; displayName: string };
@@ -91,6 +92,7 @@ export function PlatformFinanceManagement({ permissions }: { permissions: string
   }
   if (!canRead) return <EmptyState title="Permission denied" detail="Financial operations require platform.finance.read." />;
   return <div className="mt-7 space-y-6">
+    <PlatformCommissionManagement supplierId={supplierId} canAdjust={permissions.includes("platform.finance.adjust")} />
     {error && <ErrorState detail={error} retry={() => void load()} />}
     {notice && <Alert tone="success">{notice}</Alert>}
     {loading ? <Skeleton className="h-48" /> : <>

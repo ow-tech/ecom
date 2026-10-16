@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 const mocks = vi.hoisted(() => ({ api: {
+  platformDefaultCommission: vi.fn(), platformSupplierCommissionPolicy: vi.fn(),
   platformSuppliers: vi.fn(), platformFinanceSettlements: vi.fn(), platformFinanceSupplierBalance: vi.fn(), platformSupplierPayoutDestinations: vi.fn(), revealSupplierPayoutDestination: vi.fn(),
   createPlatformSettlement: vi.fn(), approvePlatformSettlement: vi.fn(), markPlatformSettlementPaid: vi.fn(),
 } }));
@@ -12,6 +13,8 @@ const draft = { id: "settlement-one", supplierId: "supplier-one", status: "DRAFT
 const approved = { ...draft, status: "APPROVED", payoutDestinationId: "bank-destination" };
 const bank = { id: "bank-destination", supplierId: "supplier-one", type: "BANK", currencyCode: "KES", bankName: "Example Bank", bankCountryCode: "KE", accountHolderName: "Supplier One", maskedLastFour: "5678", isActive: true };
 beforeEach(() => {
+  mocks.api.platformDefaultCommission.mockResolvedValue({ current: { rate: "0.100000", source: "ENV_DEFAULT" }, history: [] });
+  mocks.api.platformSupplierCommissionPolicy.mockResolvedValue({ supplierId: "supplier-one", rate: "0.100000", source: "ENV_DEFAULT", defaultRate: "0.100000", history: [] });
   mocks.api.platformSuppliers.mockResolvedValue({ data: [{ id: "supplier-one", displayName: "Supplier One" }] });
   mocks.api.platformFinanceSettlements.mockResolvedValue([draft]);
   mocks.api.platformFinanceSupplierBalance.mockResolvedValue({ supplierId: "supplier-one", balances: [{ currencyCode: "KES", balance: "500.00" }] });

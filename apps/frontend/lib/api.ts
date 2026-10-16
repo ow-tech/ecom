@@ -63,6 +63,8 @@ export type CreatePayoutDestination = {
   type: "BANK" | "MPESA"; currencyCode: string; accountHolderName: string; bankName?: string;
   bankCountryCode?: string; iban?: string; accountNumber?: string; swiftBic?: string; mpesaPhone?: string;
 };
+export type CommissionPolicySummary = { supplierId: string; rate: string; source: "SUPPLIER" | "PLATFORM_DEFAULT" | "ENV_DEFAULT"; defaultRate: string; history: Array<{ id: string; rate: string; effectiveFrom: string; effectiveTo: string | null }> };
+export type PlatformCommissionDefault = { current: { rate: string; source: "PLATFORM_DEFAULT" | "ENV_DEFAULT" }; history: Array<{ id: string; rate: string; effectiveFrom: string }> };
 export type PlatformSettlement = { id: string; supplierId: string; status: "DRAFT" | "APPROVED" | "PAID" | string; currencyCode: string; netAmount: string; payoutDestinationId?: string | null; createdAt: string; externalReference?: string | null };
 export type DeliveryOperationsPage = {
   data: Array<{ id: string; orderNumber: string; status: string; paymentStatus: "PAID"; fulfillmentMethod: "DELIVERY" | "PICKUP"; currencyCode: string; total: string; createdAt: string; updatedAt: string; pickupSnapshot: { name: string; city: string } | null; deliveryAddress: { region: string; city: string } | null; supplierOrders: Array<{ id: string; status: string; supplier: { displayName: string } }> }>;
@@ -295,6 +297,12 @@ export const api = {
   platformDeliveryQuotes: () => request<any[]>("/platform/delivery/quotes"),
   setDeliveryQuote: (id: string, input: Record<string, unknown>) => request<any>(`/platform/delivery/quotes/${encodeURIComponent(id)}/quote`, { method: "POST", body: JSON.stringify(input) }),
   platformFinanceSettlements: () => request<PlatformSettlement[]>("/platform/settlements"),
+  platformDefaultCommission: () => request<PlatformCommissionDefault>("/platform/finance/default-commission"),
+  setPlatformDefaultCommission: (rate: string) => request<unknown>("/platform/finance/default-commission", { method: "POST", body: JSON.stringify({ rate }) }),
+  platformSupplierCommissionPolicy: (supplierId: string) => request<CommissionPolicySummary>(`/platform/finance/suppliers/${encodeURIComponent(supplierId)}/commission-policy`),
+  supplierCommissionPolicy: (organizationId: string) => request<CommissionPolicySummary>(`/organizations/${encodeURIComponent(organizationId)}/finance/commission-policy`),
+  setPlatformSupplierCommission: (supplierId: string, rate: string) => request<unknown>(`/platform/finance/suppliers/${encodeURIComponent(supplierId)}/commission-rates`, { method: "POST", body: JSON.stringify({ rate, effectiveFrom: new Date().toISOString() }) }),
+  clearPlatformSupplierCommission: (supplierId: string) => request<unknown>(`/platform/finance/suppliers/${encodeURIComponent(supplierId)}/commission-rate/reset`, { method: "POST" }),
   platformFinanceSupplierBalance: (supplierId: string) => request<{ supplierId: string; balances: Array<{ currencyCode: string; balance: string }> }>(`/platform/finance/suppliers/${encodeURIComponent(supplierId)}/balance`),
   createPlatformSettlement: (supplierId: string, currencyCode: string, payoutDestinationId?: string) => request<PlatformSettlement>(`/platform/suppliers/${encodeURIComponent(supplierId)}/settlements`, { method: "POST", body: JSON.stringify({ currencyCode, payoutDestinationId }) }),
   approvePlatformSettlement: (id: string) => request<unknown>(`/platform/settlements/${encodeURIComponent(id)}/approve`, { method: "POST" }),
