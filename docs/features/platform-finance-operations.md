@@ -25,3 +25,7 @@ Never mark paid from a provider callback or without external evidence. Browser v
 ## Latest automated proof
 
 GitHub `dev` verification run [38893118508](https://github.com/ow-tech/ecom/actions/runs/38893118508) passed backend unit 23/23, frontend 22/22 test files and PostgreSQL HTTP integration 79/79 with fresh migrations. This is local integration proof only. Authenticated browser and external integrations remain separate release gates.
+
+## Manual payout reference validation (2026-10-16)
+
+`MarkSettlementPaidDto.externalReference` trims surrounding whitespace before server-side validation and refuses empty/whitespace-only values. A confirmed manual `PAID` acknowledgment persists the normalized reference; a rejected empty reference leaves the batch `APPROVED` and creates no settlement debit. The real HTTP/PostgreSQL finance suite covers both paths. This does not contact a bank, verify a payment provider, prevent duplicate external-bank transaction references, or certify any external payout. That larger reconciliation contract must be selected before implementation.

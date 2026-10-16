@@ -310,7 +310,11 @@ describe("post-order refund, return, warranty, commission, ledger, and settlemen
     expect((await prisma.supplierSettlementItem.findMany({ where: { settlementId: usd.body.id }, include: { ledgerEntry: true } })).every((row) => row.ledgerEntry.currencyCode === "USD")).toBe(true);
     expect((await http("POST", `/platform/settlements/${usd.body.id}/mark-paid`, { externalReference: "too-early" }, platform.cookie)).status).toBe(409);
     expect((await http("POST", `/platform/settlements/${usd.body.id}/approve`, undefined, platform.cookie)).status).toBe(201);
-    expect((await http("POST", `/platform/settlements/${usd.body.id}/mark-paid`, { externalReference: "settled-usd" }, platform.cookie)).status).toBe(201);
+    // Whitespace-only references cannot stand in for real external payout evidence.
+    expect((await http("POST", `/platform/settlements/${usd.body.id}/mark-paid`, { externalReference: "    " }, platform.cookie)).status).toBe(400);
+    expect((await prisma.supplierSettlement.findUniqueOrThrow({ where: { id: usd.body.id } })).status).toBe("APPROVED");
+    expect((await http("POST", `/platform/settlements/${usd.body.id}/mark-paid`, { externalReference: "  settled-usd  " }, platform.cookie)).status).toBe(201);
+    expect((await prisma.supplierSettlement.findUniqueOrThrow({ where: { id: usd.body.id } })).externalReference).toBe("settled-usd");
     expect((await http("POST", `/platform/settlements/${usd.body.id}/approve`, undefined, platform.cookie)).body.idempotent).toBe(true);
     await prisma.supplierLedgerEntry.createMany({ data: [{ supplierId: f.supplierId, currencyCode: "USD", type: SupplierLedgerEntryType.MANUAL_ADJUSTMENT, amountSigned: new Prisma.Decimal("25.00"), referenceType: "TEST", referenceId: `${prefix}-after` }, { supplierId: f.supplierId, currencyCode: "USD", type: SupplierLedgerEntryType.REFUND_DEBIT, amountSigned: new Prisma.Decimal("-10.00"), referenceType: "TEST", referenceId: `${prefix}-refund-after` }] });
     const balances = await (await http("GET", `/platform/finance/suppliers/${f.supplierId}/balance`, undefined, platform.cookie)).body.balances; expect(balances).toEqual(expect.arrayContaining([{ currencyCode: "USD", balance: "15.00" }, { currencyCode: "KES", balance: "20.00" }]));

@@ -1,4 +1,4 @@
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Max, MaxLength, Min } from "class-validator";
 
 export class CreateCommissionRateDto {
@@ -20,7 +20,7 @@ export class CreateSettlementDto {
 }
 
 export class MarkSettlementPaidDto {
-  @IsString() @IsNotEmpty() @MaxLength(200) externalReference!: string;
+  @Transform(({ value }: { value: unknown }) => typeof value === "string" ? value.trim() : value) @IsString() @IsNotEmpty() @MaxLength(200) externalReference!: string;
   @IsOptional() @IsString() @MaxLength(1000) note?: string;
 }
 
