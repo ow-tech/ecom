@@ -18,6 +18,13 @@ export type AccountNotification = {
 };
 export type AccountNotificationsPage = { items: AccountNotification[]; page: number; limit: number; total: number };
 export type AccountNotificationPreference = { category: string; inAppEnabled: boolean; emailEnabled: boolean; smsEnabled: boolean };
+export type PlatformOutboxEvent = {
+  id: string; eventType: string; aggregateType: string; aggregateId: string;
+  status: "PENDING" | "PROCESSING" | "PROCESSED" | "FAILED";
+  attemptCount: number; claimedAt: string | null; availableAt: string;
+  lastErrorCode: string | null; createdAt: string;
+};
+export type PlatformOutboxPage = { items: PlatformOutboxEvent[]; total: number; page: number; limit: number };
 export type Session = { id: string; email: string; displayName: string | null; organizations: OrganizationContext[]; platformPermissions: string[] };
 export type CatalogueCategory = { id: string; name: string; slug: string; description: string | null; parentId: string | null };
 export type CatalogueItem = {
@@ -214,6 +221,13 @@ export const api = {
   createSupportTicket: (input: { category: SupportCategory; subject: string; message: string; relatedEntityType?: string; relatedEntityId?: string }) => request<CustomerSupportTicket>("/customer/support/tickets", { method: "POST", body: JSON.stringify(input) }),
   replySupportTicket: (ticketId: string, body: string) => request<unknown>(`/customer/support/tickets/${encodeURIComponent(ticketId)}/messages`, { method: "POST", body: JSON.stringify({ body }) }),
   platformSummary: () => request<any>("/platform/operations/summary"),
+  platformOutboxPage: (query: { status?: string; page?: number; limit?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (query.status) params.set("status", query.status);
+    params.set("page", String(query.page ?? 1));
+    params.set("limit", String(query.limit ?? 25));
+    return request<PlatformOutboxPage>(`/platform/operations/outbox?${params}`);
+  },
   platformAudit: (filters: { actor?: string; action?: string; entityType?: string; page?: number; limit?: number } = {}) => {
     const query = new URLSearchParams({ page: String(filters.page ?? 1), limit: String(filters.limit ?? 25) });
     if (filters.actor) query.set("actor", filters.actor);

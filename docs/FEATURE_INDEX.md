@@ -187,6 +187,12 @@ Status: IMPLEMENTED_VERIFICATION_PENDING. Account-owned notification listing, re
 
 Feature documentation: [operational-outbox-notifications.md](features/operational-outbox-notifications.md)
 
+## Platform background jobs monitoring
+
+Status: IMPLEMENTED_VERIFICATION_PENDING. An operations-role-only outbox state/attempt/error viewer is integrated in the Platform Admin workspace using the canonical sanitized API. UI regression and GitHub CI pending; no manual job mutation controls or external delivery claims.
+
+Feature documentation: [platform-operations.md](features/platform-operations.md)
+
 ## Operational worker crash recovery
 
 Status: IMPLEMENTED_VERIFICATION_PENDING. PostgreSQL lease-based reclaim and generation fencing protect crashed or stale outbox claims; focused HTTP/PostgreSQL regression added. Deployment scheduler, actual EMAIL/SMS providers, customer notification UI and release browser evidence remain outstanding.
