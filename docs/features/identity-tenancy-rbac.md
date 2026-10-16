@@ -39,6 +39,4 @@ and client organization IDs never establish authorization.
 
 ## Limitations and continuation
 
-No invitation workflow, reset, verification delivery, MFA, role-management UI,
-or frontend auth UI exists. Next seam: Supplier as the one-to-one business
-extension of Organization, using the documented verified context.
+Invitation and role-management UI, email verification, MFA and session-device management remain outside this identity foundation. Password change/reset UI and database security have been added separately in [customer-account-security.md](customer-account-security.md); live Resend and browser verification remain release gates. Supplier tenancy still follows the canonical verified Organization context.

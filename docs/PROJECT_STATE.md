@@ -15,8 +15,8 @@ is the primary data store and Redis is local supporting infrastructure.
 
 ## Current applications and packages
 
-- `apps/frontend`: minimal Next.js application shell
-- `apps/backend`: NestJS startup shell and health endpoint
+- `apps/frontend`: implemented Next.js customer storefront, account/checkout UI and supplier/platform workspaces; authenticated browser verification remains a release gate
+- `apps/backend`: modular commerce backend with canonical identity, inventory, checkout, payment, fulfilment, finance and operations modules
 - `packages/shared-types`: reserved for explicit cross-application contracts
 
 ## Current infrastructure
@@ -27,6 +27,13 @@ named volumes, health checks, and localhost ports.
 An opt-in persistent QA workflow is available through `pnpm qa:up`. It uses an
 isolated Compose project/database (`ecom-qa` / `ecom_local_qa`), guarded,
 idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LOCAL.md).
+
+## Current feature delivery — 2026-10-16
+
+- Customer account profile and security: `/account/profile`, `/account/security`, `/forgot-password`, `/reset-password`; existing owned profile API, password change, single-use hashed reset tokens, session revocation and cross-replica throttling. Recovery email requires configured Resend sender; live email/browser validation remains.
+- Checkout/Paystack: canonical settlement retained; payment reconciliation now locks and re-checks terminal state before stale verification writes; the race is covered by a focused integration regression. Live Paystack TEST Card/M-Pesa and public webhook validation remain release gates.
+- Delivery/pickup: platform admin can manage pickup points, zones/rates, manual quotations. `PickupPoint.currencyCode` explicitly governs nonzero pickup fees; checkout preview and prepare reject mismatched fee currency and frontend filters compatible points. The forward migration backfills historical points as KES; validate legacy pricing before staging/prod promotion.
+- GitHub `dev` CI workflow executes typecheck, lint, builds, unit/frontend tests, fresh PostgreSQL migrations/seed, and integration tests using synthetic provider configuration. Refer to the latest GitHub Actions run for current results; prior historical results are not proof of the newest revision.
 
 ## Implemented features
 

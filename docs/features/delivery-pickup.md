@@ -45,3 +45,9 @@ fee re-rating, snapshots,
 server fee derivation, deterministic rating, quote blocking/approval/expiry/ownership,
 final payment amount, collection, and reservation policy. No courier API, maps, routes,
 GPS, delivery OTP, notification engine, or frontend UI exists.
+
+## Pickup fee currency contract (2026-10-16)
+
+`PickupPoint.currencyCode` (three-letter uppercase ISO currency) accompanies the pickup fee. Historic rows are assigned KES by migration `20261016120000_pickup_fee_currency` and should be reviewed before production rollout. `CheckoutService.pickupCharge` is reused by read-only preview and serializable prepare. A nonzero pickup charge cannot be added to a cart in another currency: `PICKUP_FEE_CURRENCY_MISMATCH` (HTTP 409). Zero-fee collection points are available across currencies. Checkout filters incompatible pickup points and renders fees using their configured currency. The canonical `Order.currencyCode` remains the denomination of the immutable pickup snapshot amount because nonzero fees must match it.
+
+Focused HTTP and frontend fixtures exercise matching USD point fees and reject nonzero KES-point fees on a USD cart. Never introduce frontend-side currency conversion or silently treat the fee as order currency.

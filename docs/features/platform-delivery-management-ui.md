@@ -31,7 +31,7 @@ Platform operations staff need to manage active pickup points, delivery zones/ra
 
 ## Known boundaries / TODO
 
-- `PickupPoint.pickupFee` stores an amount but not an explicit fee currency. The admin UI displays a raw fee instead of guessing one. Confirm checkout pricing for non-KES suppliers before release; a model change requires a business decision and migration.
+- Pickup points now store `currencyCode` alongside `pickupFee`. The admin UI and public checkout projection show this currency, and nonzero fees must match the cart currency in both preview and order preparation. Existing points are backfilled as KES by `20261016120000_pickup_fee_currency`, reflecting the original Kenya pricing assumption; confirm that assumption against real operational data before production migration.
 - No courier-provider integration, fleet dispatch, warehouse scans, driver assignment, or route optimization is added by this feature.
 - Historical checkout release verification remains pending: real authenticated mobile/desktop browsers and staging Paystack/customer pickup or delivery journey.
 - The backend already validates price/quote snapshots and secure pickup codes; do not duplicate validation in the browser.

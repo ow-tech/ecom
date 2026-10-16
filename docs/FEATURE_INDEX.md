@@ -125,7 +125,7 @@ Feature documentation: [delivery-pickup.md](features/delivery-pickup.md)
 
 ## Platform Delivery and Pickup Administration
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL. Platform-authorized staff can create/update pickup points, delivery zones and rates and issue manual delivery quotations through canonical APIs. Frontend tests have been committed; live browser and real database verification remain release gates.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Platform-authorized staff can create/update pickup points (with explicit fee currency), delivery zones and rates and issue manual delivery quotations through canonical APIs. Checkout preview and prepare reject mismatched nonzero pickup-fee currencies. Frontend tests have been committed; live browser and real database verification remain release gates.
 
 Feature documentation: [platform-delivery-management-ui.md](features/platform-delivery-management-ui.md)
 
