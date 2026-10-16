@@ -30,7 +30,7 @@ Do not duplicate membership authorization in the UI. Keep `RbacService.organizat
 
 ## User interface
 
-Owner/managers with `organization.members.read` see `/supplier/:organizationId/staff`. Only `organization.members.manage` reveals invite/change/remove controls; owners and own memberships cannot be removed or delegated. The recipient accepts from `/account/invitations` and `SessionProvider.refresh` retrieves the newly active organization permissions. API membership state remains authoritative.
+Owner/managers with `organization.members.read` see `/supplier/:organizationId/staff`. Only `organization.staff.manage` reveals invite/change/remove controls; owners and own memberships cannot be removed or delegated. The recipient accepts from `/account/invitations` and `SessionProvider.refresh` retrieves the newly active organization permissions. API membership state remains authoritative.
 
 
 ## Phase 2 delegated staff permission (in progress)
