@@ -66,6 +66,12 @@ refresh, and immutable order snapshots; focused React address/checkout tests pas
 
 Feature documentation: [customer-cart.md](features/customer-cart.md)
 
+## Customer Profile UI
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. The authenticated `/account/profile` route reads and updates the canonical owned customer profile, with successful/error/signed-out UI regressions added. Package tests and responsive browser release checks were not executed in this session.
+
+Feature documentation: [customer-profile-management.md](features/customer-profile-management.md)
+
 ## Checkout + Order Foundation
 
 Status: Implemented
