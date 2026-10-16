@@ -1,12 +1,15 @@
 import { Transform, Type } from "class-transformer";
 import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from "class-validator";
-import { SupplierListingStatus } from "@prisma/client";
+import { ListingOrigin, SupplierListingStatus } from "@prisma/client";
 
 const trim = ({ value }: { value: unknown }): unknown => typeof value === "string" ? value.trim() : value;
 const upper = ({ value }: { value: unknown }): unknown => typeof value === "string" ? value.trim().toUpperCase() : value;
 
 export class CreateSupplierListingDto {
   @IsUUID() productId!: string;
+  @IsOptional() @IsEnum(ListingOrigin) origin?: ListingOrigin;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) deliveryMinDays?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) deliveryMaxDays?: number;
   @IsOptional() @IsUUID() productVariantId?: string;
   @IsOptional() @IsString() @MaxLength(120) @Transform(upper) supplierSku?: string;
   @IsOptional() @IsString() @MaxLength(200) @Transform(trim) titleOverride?: string;
@@ -16,6 +19,9 @@ export class CreateSupplierListingDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(3650) warrantyDays?: number;
 }
 export class UpdateSupplierListingDto {
+  @IsOptional() @IsEnum(ListingOrigin) origin?: ListingOrigin;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) deliveryMinDays?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) deliveryMaxDays?: number;
   @IsOptional() @IsString() @MaxLength(120) @Transform(upper) supplierSku?: string;
   @IsOptional() @IsString() @MaxLength(200) @Transform(trim) titleOverride?: string;
   @IsOptional() @IsString() @MaxLength(5000) @Transform(trim) descriptionOverride?: string;
