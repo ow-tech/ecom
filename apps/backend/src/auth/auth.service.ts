@@ -19,6 +19,14 @@ export class AuthService {
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
     try {
       const user = await this.prisma.$transaction(async (tx) => {
+        // INV-IDENTITY: serialize against staff invitations before claiming an email.
+        await tx.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${emailNormalized}, 0))`);
+        if (accountAudience === AccountAudience.CUSTOMER) {
+          const reserved = await tx.staffInvitation.findFirst({ where: {
+            emailNormalized, status: "PENDING", expiresAt: { gt: new Date() },
+          }, select: { id: true } });
+          if (reserved) throw new ConflictException("Email is unavailable");
+        }
         const created = await tx.user.create({ data: { email: email.trim(), emailNormalized, displayName, accountAudience } });
         await tx.credential.create({ data: { userId: created.id, passwordHash } });
         return created;
