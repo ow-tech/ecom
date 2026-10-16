@@ -36,7 +36,7 @@ export type CatalogueItem = {
 export type CataloguePage = { data: CatalogueItem[]; page: number; limit: number; total: number };
 export type CatalogueMedia = { id: string; url: string; altText: string };
 export type CatalogueVariant = { id: string; name: string; attributes: Record<string, unknown> };
-export type CatalogueOffer = { id: string; price: string; currencyCode: string; variantId: string | null; variant: CatalogueVariant | null; availability: "IN_STOCK"; supplier: { slug: string; name: string } };
+export type CatalogueOffer = { id: string; price: string; currencyCode: string; origin?: "LOCAL" | "OVERSEAS"; deliveryMinDays?: number | null; deliveryMaxDays?: number | null; variantId: string | null; variant: CatalogueVariant | null; availability: "IN_STOCK"; supplier: { slug: string; name: string } };
 export type CatalogueProduct = {
   id: string; name: string; slug: string; brand: string | null;
   category: { id: string; name: string; slug: string }; image: CatalogueMedia | null;
