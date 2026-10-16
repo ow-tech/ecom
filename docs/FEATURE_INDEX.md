@@ -72,6 +72,12 @@ Status: IMPLEMENTED_VERIFICATION_PARTIAL. The authenticated `/account/profile` r
 
 Feature documentation: [customer-profile-management.md](features/customer-profile-management.md)
 
+## Customer Account Security
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Password change/recovery UI, hashed one-time reset tokens, durable authentication throttling and session revocation are committed; migrated HTTP verification and provider-email/browser release tests remain pending.
+
+Feature documentation: [customer-account-security.md](features/customer-account-security.md)
+
 ## Checkout + Order Foundation
 
 Status: Implemented
