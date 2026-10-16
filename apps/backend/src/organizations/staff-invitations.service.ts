@@ -94,7 +94,7 @@ export class StaffInvitationsService {
       if (existing) {
         if (scope === StaffInvitationScope.SUPPLIER && await tx.organizationMembership.findUnique({
           where: { organizationId_userId: { organizationId: organizationId!, userId: existing.id } },
-        }).then(row => row?.status === MembershipStatus.ACTIVE)) throw new ConflictException("Staff member already belongs to this organization");
+        }).then(row => row?.status === MembershipStatus.ACTIVE || row?.status === MembershipStatus.SUSPENDED)) throw new ConflictException("Staff member already belongs to this organization or is suspended");
         if (scope === StaffInvitationScope.PLATFORM && await tx.platformRoleAssignment.findFirst({
           where: { userId: existing.id, role: { key: roleKey } },
         })) throw new ConflictException("User already has this platform role");
@@ -205,8 +205,8 @@ export class StaffInvitationsService {
         const currentMembership = await tx.organizationMembership.findUnique({ where: {
           organizationId_userId: { organizationId: invitation.organizationId, userId: user.id },
         } });
-        if (currentMembership?.status === MembershipStatus.ACTIVE)
-          throw new ConflictException("Staff membership already active");
+        if (currentMembership?.status === MembershipStatus.ACTIVE || currentMembership?.status === MembershipStatus.SUSPENDED)
+          throw new ConflictException("Staff membership is already active or suspended");
         const membership = await tx.organizationMembership.upsert({
           where: { organizationId_userId: { organizationId: invitation.organizationId, userId: user.id } },
           create: { organizationId: invitation.organizationId, userId: user.id, status: MembershipStatus.ACTIVE },
