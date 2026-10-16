@@ -10,6 +10,7 @@ import { AppModule } from "../src/app.module";
 import { PaystackClient } from "../src/payments/paystack/paystack.client";
 import { PaystackEvidence, PaystackProviderError } from "../src/payments/paystack/paystack.types";
 import { ReservationExpiryService } from "../src/payments/reservation-expiry.service";
+import { PaymentReconciliationService } from "../src/payments/payment-reconciliation.service";
 import { PrismaService } from "../src/prisma/prisma.service";
 
 // Integration responses intentionally cover several endpoint contracts.
@@ -249,6 +250,26 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
     expect(await prisma.payment.count({ where: { orderId: fixture.orderId, status: "SUCCEEDED" } })).toBe(1);
     expect((await http("POST", `/customer/orders/${fixture.orderId}/payments/${initializedPayment.body.paymentId}/verify`, undefined, fixture.customer.cookie)).status).toBe(201);
     expect(await expiry.expireOrder(fixture.orderId)).toEqual({ expired: 0, orderExpired: false });
+    expect(await prisma.inventoryMovement.count({ where: { inventoryItemId: fixture.itemId, referenceType: "PAYMENT" } })).toBe(1);
+  });
+
+  it("keeps webhook-confirmed success when an older verification returns pending", async () => {
+    const fixture = await createOrder("stale-reconcile", "11.00", 1);
+    const initialized = await initialize(fixture, "stale-key");
+    let reachedVerify!: () => void;
+    let releaseVerify!: () => void;
+    const entered = new Promise<void>(resolve => { reachedVerify = resolve; });
+    const waiting = new Promise<PaystackEvidence>(resolve => {
+      releaseVerify = () => resolve({ reference: initialized.body.reference, providerStatus: "pending", amountMinor: fixture.totalMinor, currency: "USD", customerEmail: fixture.customerEmail, channel: "card" });
+    });
+    paystack.verify.mockImplementationOnce(async () => { reachedVerify(); return waiting; });
+    const reconciliation = app.get(PaymentReconciliationService).reconcile(initialized.body.paymentId);
+    await entered;
+    expect((await webhook(successEvent(initialized.body.reference, fixture.totalMinor, fixture.customerEmail))).body.result).toBe("SETTLED");
+    releaseVerify();
+    expect((await reconciliation).status).toBe("SUCCEEDED");
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: initialized.body.paymentId } })).status).toBe("SUCCEEDED");
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: fixture.orderId } })).status).toBe("PAYMENT_CONFIRMED");
     expect(await prisma.inventoryMovement.count({ where: { inventoryItemId: fixture.itemId, referenceType: "PAYMENT" } })).toBe(1);
   });
 

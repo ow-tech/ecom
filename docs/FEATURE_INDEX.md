@@ -99,6 +99,12 @@ responsive-browser verification remain pending environment.
 
 Feature documentation: [checkout-ui.md](features/checkout-ui.md)
 
+## Payment Reconciliation Concurrency
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Locked re-checks prevent stale reconciliation from overwriting terminal payment status; deterministic concurrency regression added. Live PostgreSQL/provider verification pending.
+
+Feature documentation: [payment-reconciliation-concurrency.md](features/payment-reconciliation-concurrency.md)
+
 ## Reservation Expiry
 
 Status: Implemented

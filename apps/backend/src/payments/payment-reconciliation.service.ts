@@ -26,6 +26,14 @@ export class PaymentReconciliationService {
 
   constructor(private readonly prisma: PrismaService, private readonly paystack: PaystackClient, private readonly binding: PaymentBindingService, private readonly settlement: PaymentSettlementService, private readonly audit: AuditService) {}
 
+  // INV-PAY-RECON-01: Verify is an external read. Re-check under row lock
+  // before any write to prevent stale evidence from downgrading webhook success.
+  private async lockIfUnresolved(tx: Prisma.TransactionClient, paymentId: string): Promise<boolean> {
+    await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Payment" WHERE "id" = ${paymentId}::uuid FOR UPDATE`);
+    const current = await tx.payment.findUniqueOrThrow({ where: { id: paymentId }, select: { status: true } });
+    return ![PaymentStatus.SUCCEEDED, PaymentStatus.FAILED, PaymentStatus.CANCELLED].includes(current.status);
+  }
+
   async reconcile(paymentId: string, reconciliationActorUserId?: string) {
     const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
     if (!payment) throw new NotFoundException("Payment not found");
@@ -38,6 +46,7 @@ export class PaymentReconciliationService {
       } else {
         const now = new Date();
         await this.prisma.$transaction(async tx => {
+          if (!await this.lockIfUnresolved(tx, payment.id)) return;
           await tx.payment.update({ where: { id: payment.id }, data: { status, lastVerifiedAt: now, providerAmount: new Prisma.Decimal(evidence.amountMinor), providerCurrency: evidence.currency, providerStatus: evidence.providerStatus, providerCode: evidence.providerCode, providerChannel: evidence.channel, gatewayResponse: evidence.gatewayResponse, failedAt: status === PaymentStatus.FAILED ? now : undefined, cancelledAt: status === PaymentStatus.CANCELLED ? now : undefined } });
           if (reconciliationActorUserId) await this.audit.emitInTransaction(tx, { actorUserId: reconciliationActorUserId, action: "PAYMENT_RECONCILED", entityType: "PAYMENT", entityId: payment.id, dedupeKey: `payment:${payment.id}:reconciled:${status.toLowerCase()}`, metadata: { result: status } });
         });
@@ -47,6 +56,7 @@ export class PaymentReconciliationService {
         this.logger.warn({ event: "paystack_verification_failed", orderId: payment.orderId, paymentId: payment.id, providerErrorCode: error.code });
         const now = new Date();
         await this.prisma.$transaction(async tx => {
+          if (!await this.lockIfUnresolved(tx, payment.id)) return;
           await tx.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.UNKNOWN, lastVerifiedAt: now, failureCode: error.code, failureMessage: error.message } });
           if (reconciliationActorUserId) await this.audit.emitInTransaction(tx, { actorUserId: reconciliationActorUserId, action: "PAYMENT_RECONCILED", entityType: "PAYMENT", entityId: payment.id, dedupeKey: `payment:${payment.id}:reconciled:unknown`, metadata: { result: "UNKNOWN", failureCode: error.code } });
         });
