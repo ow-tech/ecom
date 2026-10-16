@@ -34,9 +34,9 @@ Feature documentation: [identity-tenancy-rbac.md](features/identity-tenancy-rbac
 
 ## Exclusive Account Audiences, Supplier Email Invitations and Head Admin — Planned
 
-Status: PLANNED_NOT_IMPLEMENTED. An indexed delivery plan establishes the account-audience boundary, supplier-admin invite/role delegation without widening sensitive payout rights, email invitation acceptance, and protected head-admin/platform staff management. The current runtime still permits mixed customer/admin accounts and requires pre-registration for supplier invites.
+Status: PHASE_1_IMPLEMENTED_VERIFICATION_PENDING. Exclusive customer/workforce audiences, email collision protection, safe migration, API/DB audience guards and sign-in separation are committed. Supplier-admin email invitations and protected head-admin management remain PLANNED (Phases 2–3). Existing mixed accounts require a preflight/remediation before production migration.
 
-Feature plan: [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md)
+Phase 1 implementation: [account-audience-phase1.md](features/account-audience-phase1.md). Phases 2–3: [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md)
 
 ## Supplier Domain + Supplier Onboarding
 

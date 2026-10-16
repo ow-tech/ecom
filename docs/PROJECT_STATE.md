@@ -34,7 +34,7 @@ The active implementation plan is [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROA
 
 ## Next planned identity/administration delivery
 
-Customer/admin email separation, email-based staff onboarding and the platform head-admin management interface are NOT IMPLEMENTED. Follow [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md) in order: conflict preflight and account-audience boundaries → supplier admin delegation/invitation email → super/head-admin hierarchy and platform staff UI. Do not grant `organization.members.manage` broadly to supplier admins; it currently also controls sensitive payout-destination writes.
+Customer/workforce audience separation has been implemented on `dev` and is pending CI, preflight and browser verification; email-based staff onboarding and the platform head-admin management interface are NOT IMPLEMENTED. Follow [account-audience-phase1.md](features/account-audience-phase1.md) for the implemented Phase 1 cutover and mandatory mixed-account preflight; then [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md) for Phase 2 and Phase 3 → supplier admin delegation/invitation email → super/head-admin hierarchy and platform staff UI. Do not grant `organization.members.manage` broadly to supplier admins; it currently also controls sensitive payout-destination writes.
 
 ## Current feature delivery — 2026-10-16
 

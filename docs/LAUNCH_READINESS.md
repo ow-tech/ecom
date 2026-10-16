@@ -5,7 +5,7 @@
 | Area | Classification | Evidence / gap |
 | --- | --- | --- |
 | Customer registration/login/recovery | RELEASE_VERIFICATION_REQUIRED | Password change and reset backend/UI committed with hashed expiring tokens, session revocation and throttle tests; configured email sender and authenticated browser verification pending. |
-| Account audience and staff invitations | LAUNCH_BLOCKER | Exclusive customer/workforce identity not enforced. Supplier invitations require registered accounts and do not send verified email; supplier admin staff delegation and protected head-admin platform directory remain planned. See administrative-identities-invitations-plan.md. |
+| Account audience and staff invitations | LAUNCH_BLOCKER | Exclusive customer/workforce DB guards, segregated login routes and a fail-closed migration are implemented on `dev` but require preflight against real existing accounts, full CI/browser verification and safe migration promotion. Production workforce onboarding remains closed until verified email invitations, supplier-admin role delegation and head-admin directory (Phases 2–3) are built. See account-audience-phase1.md. |
 | Supplier onboarding/approval | RELEASE_VERIFICATION_REQUIRED | Canonical A–J HTTP fixture proves submit/platform approval/history; browser and staging proof remain. |
 | Catalogue and offers | RELEASE_VERIFICATION_REQUIRED | A–J and listing HTTP proof pass; browser image delivery remains. |
 | Product media | RELEASE_VERIFICATION_REQUIRED | URL metadata projects safely in HTTP; fetch failure/fallback and host configuration remain unproven. `PRODUCT_MEDIA_BINARY_UPLOAD_NOT_IMPLEMENTED`. |

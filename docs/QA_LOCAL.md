@@ -80,3 +80,7 @@ it does not contain narrower inventory-only, orders-only, or finance-viewer
 system roles. The seed therefore uses organization admin for inventory/orders
 staff and member for the finance/support fixtures, without inventing a parallel
 RBAC model.
+
+## Customer versus workforce accounts (Phase 1)
+
+The QA seed provisions `customer@gmail.com` and `customer2@gmail.com` as CUSTOMER and supplier/platform/employee fixtures as WORKFORCE; it refuses to reuse a QA account with a mismatched audience. Staff authenticate through `/staff/login`, while customer accounts authenticate through `/login`. `/staff/register` is a temporary **nonproduction only** account-creation entry for testing; production workforce onboarding remains closed until Phase 2's verified invitation flow. QA seed must not invent mixed customer/admin profiles. Migration can fail on an older QA database if it contains such mixed records; run the read-only preflight in [account-audience-phase1.md](features/account-audience-phase1.md) and use an isolated QA reset only after reviewing persisted test data.
