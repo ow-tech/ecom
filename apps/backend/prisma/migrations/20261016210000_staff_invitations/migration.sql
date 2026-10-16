@@ -36,3 +36,47 @@ CREATE UNIQUE INDEX "StaffInvitation_pending_supplier_unique" ON "StaffInvitatio
 CREATE UNIQUE INDEX "StaffInvitation_pending_platform_unique" ON "StaffInvitation"("emailNormalized") WHERE "status"='PENDING' AND "scope"='PLATFORM';
 ALTER TABLE "StaffInvitation" ADD CONSTRAINT "StaffInvitation_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "StaffInvitation" ADD CONSTRAINT "StaffInvitation_invitedByUserId_fkey" FOREIGN KEY ("invitedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- INV-EMAIL-01: direct SQL / Prisma writes must respect pending workforce
+-- email reservations. The advisory lock is shared with AuthService.register
+-- and StaffInvitationsService.invite, closing customer/invite races.
+CREATE FUNCTION enforce_staff_email_reservation_on_user()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW."accountAudience" = 'CUSTOMER' THEN
+    PERFORM pg_advisory_xact_lock(hashtextextended(lower(btrim(NEW."emailNormalized")), 0));
+    IF EXISTS (
+      SELECT 1 FROM "StaffInvitation" i
+      WHERE i."emailNormalized" = lower(btrim(NEW."emailNormalized"))
+        AND i."status" = 'PENDING'
+        AND i."expiresAt" > CURRENT_TIMESTAMP
+    ) THEN
+      RAISE EXCEPTION 'Email reserved for workforce invitation' USING ERRCODE = '23505';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER "User_pending_staff_invitation_guard"
+BEFORE INSERT OR UPDATE OF "accountAudience", "emailNormalized" ON "User"
+FOR EACH ROW EXECUTE FUNCTION enforce_staff_email_reservation_on_user();
+
+CREATE FUNCTION enforce_staff_invitation_recipient()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW."status" = 'PENDING' AND NEW."expiresAt" > CURRENT_TIMESTAMP THEN
+    PERFORM pg_advisory_xact_lock(hashtextextended(NEW."emailNormalized", 0));
+    IF EXISTS (
+      SELECT 1 FROM "User" u
+      WHERE u."emailNormalized" = NEW."emailNormalized"
+        AND (u."accountAudience" <> 'WORKFORCE' OR u."status" <> 'ACTIVE')
+    ) THEN
+      RAISE EXCEPTION 'Email unavailable for workforce invitation' USING ERRCODE = '23505';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER "StaffInvitation_recipient_audience_guard"
+BEFORE INSERT OR UPDATE OF "emailNormalized", "status", "expiresAt" ON "StaffInvitation"
+FOR EACH ROW EXECUTE FUNCTION enforce_staff_invitation_recipient();
