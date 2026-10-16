@@ -257,7 +257,7 @@ Feature documentation: [platform-audit-explorer.md](features/platform-audit-expl
 
 ## Platform Default and Supplier-Specific Commissions
 
-Status: IMPLEMENTED_VERIFICATION_PENDING. Editable, versioned platform default (initially 10%), optional supplier effective-dated overrides and reset-to-default, supplier portal read visibility, canonical fulfilment rate resolution and targeted regressions committed to `dev`. Current CI and browser release verification are separate gates.
+Status: LOCAL_VERIFIED. Editable, versioned platform default (initially 10%), supplier overrides and fallback, supplier portal visibility and canonical earning calculations passed GitHub CI run 38909868176 (23 backend unit, 26 frontend test files, 84 HTTP/PostgreSQL integration, 17 migrations). Authenticated browser and external payout evidence remain separate release gates.
 
 Feature documentation: [configurable-commission-policy.md](features/configurable-commission-policy.md)
 

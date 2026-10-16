@@ -1,7 +1,7 @@
 # Configurable marketplace commission policy
 
 ## Status
-IMPLEMENTED_VERIFICATION_PENDING. Backend APIs, effective-dated platform default, supplier override controls, supplier-visible effective commission, refund/settlement invariants, and targeted HTTP/PostgreSQL and frontend regression tests have been committed to `dev`. Require the newest GitHub Actions result before declaring local verification complete. Authenticated browser release checks remain pending.
+LOCAL_VERIFIED. Effective-dated global default, supplier overrides, supplier-facing effective rate, audited admin mutations, and canonical net-earnings resolution are committed to `dev` and verified by GitHub CI [38909868176](https://github.com/ow-tech/ecom/actions/runs/38909868176): backend unit 23/23, frontend 26/26 test files, HTTP/PostgreSQL integration 84/84, 17 migrations, typecheck/lint/build passed. Authenticated browser and real payout statement verification remain release gates.
 
 ## Business rules
 - The initial ECOM platform default commission is **10%** (0.100000), sourced from validated backend `DEFAULT_COMMISSION_RATE` until a platform-managed default setting exists.

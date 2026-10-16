@@ -48,7 +48,7 @@ idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LO
 
 - The initial 10% default is now editable in Platform Finance and stored as an effective-dated `PlatformCommissionRate` with audit evidence. Suppliers have optional effective-dated overrides; no active supplier override inherits the current platform default, then the environment fallback if no platform setting has ever been created.
 - Supplier Finance displays the effective rate and base rate. Updates only affect eligible future fulfilment postings; historical `CommissionRecord` and net ledger entries remain unchanged.
-- The canonical commission/settlement flow continues to deduct the fee once at earning, not at manual bank/M-Pesa payout. Rate configuration and full PostgreSQL/browser verification should be assessed using the latest CI run and documented feature note.
+- The canonical commission/settlement flow continues to deduct the fee once at earning, not at manual bank/M-Pesa payout. Commission rate configuration passed CI 38909868176; authenticated browser and payout release checks remain outstanding.
 - Feature documentation: [configurable-commission-policy.md](features/configurable-commission-policy.md).
 
 ## Manual supplier payout destination feature — 2026-10-16
