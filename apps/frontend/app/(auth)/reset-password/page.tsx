@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { type FormEvent, Suspense, useEffect, useState } from "react";
 import { api } from "../../../lib/api";
 import { Alert, Button, FormField, Input } from "../../../components/ui";
 
 function ResetContent() {
-  const token = useSearchParams().get("token") ?? "";
+  const [token, setToken] = useState("");
+  useEffect(() => {
+    const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get("token");
+    const legacyToken = new URLSearchParams(window.location.search).get("token");
+    setToken(fragmentToken || legacyToken || "");
+    if (fragmentToken || legacyToken) window.history.replaceState(null, "", "/reset-password");
+  }, []);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [working, setWorking] = useState(false);
