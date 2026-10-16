@@ -67,7 +67,8 @@ export class StaffInvitationsService {
     try { url = new URL("/staff/invitation", origin); } catch { throw new ServiceUnavailableException("Public application URL invalid"); }
     if (url.protocol !== "https:" && !(this.config.get<string>("NODE_ENV") !== "production" && url.hostname === "localhost"))
       throw new ServiceUnavailableException("Staff invitation requires HTTPS");
-    url.searchParams.set("token", token);
+    // URL fragments are not sent in HTTP requests or Referer headers.
+    url.hash = new URLSearchParams({ token }).toString();
     return url.toString();
   }
 
