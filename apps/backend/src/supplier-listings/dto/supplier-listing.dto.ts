@@ -8,6 +8,7 @@ const upper = ({ value }: { value: unknown }): unknown => typeof value === "stri
 export class CreateSupplierListingDto {
   @IsUUID() productId!: string;
   @IsOptional() @IsEnum(ListingOrigin) origin?: ListingOrigin;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(1000000) overseasOrderable?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) deliveryMinDays?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) deliveryMaxDays?: number;
   @IsOptional() @IsUUID() productVariantId?: string;
@@ -20,6 +21,7 @@ export class CreateSupplierListingDto {
 }
 export class UpdateSupplierListingDto {
   @IsOptional() @IsEnum(ListingOrigin) origin?: ListingOrigin;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(1000000) overseasOrderable?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) deliveryMinDays?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) deliveryMaxDays?: number;
   @IsOptional() @IsString() @MaxLength(120) @Transform(upper) supplierSku?: string;
