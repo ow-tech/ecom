@@ -90,7 +90,7 @@ describe("staff invitations — live HTTP/PostgreSQL", () => {
     expect(invited.body.delivery).toBe("ACCEPTED_BY_PROVIDER");
     const duplicate=await http("POST","/auth/register",{email:recipient,password});
     expect(duplicate.status).toBe(409);
-    const raw=new URL(invitationLinks.at(-1)!).searchParams.get("token")!;
+    const raw=new URLSearchParams(new URL(invitationLinks.at(-1)!).hash.slice(1)).get("token")!;
     const accepted=await http("POST","/staff-invitations/accept",{token:raw,password});
     expect(accepted.status).toBe(201);
     const replay=await http("POST","/staff-invitations/accept",{token:raw,password});
