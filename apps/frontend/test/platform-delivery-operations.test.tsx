@@ -30,7 +30,7 @@ describe("permission-scoped platform delivery operations queue", () => {
   it("offers a real retry on read failure without displaying stale records", async () => {
     calls.operations.mockRejectedValueOnce(new Error("Temporary outage")).mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 25 });
     render(<DeliveryOperations />);
-    expect(await screen.findByText("Temporary outage")).toBeTruthy();
+    expect(await screen.findByText(/Temporary outage/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("No matching fulfilment work")).toBeTruthy();
   });
