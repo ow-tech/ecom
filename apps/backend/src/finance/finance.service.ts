@@ -43,7 +43,26 @@ export class FinanceService {
   async platformBalance(userId: string, supplierId: string) { await this.rbac.requirePlatform(userId, "platform.finance.read"); return { supplierId, balances: await this.balance(supplierId) }; }
   async platformLedger(userId: string, supplierId: string) { await this.rbac.requirePlatform(userId, "platform.finance.read"); return (await this.prisma.supplierLedgerEntry.findMany({ where: { supplierId }, orderBy: { createdAt: "desc" }, take: 200 })).map((row) => this.ledgerOutput(row)); }
   async platformCommissions(userId: string) { await this.rbac.requirePlatform(userId, "platform.finance.read"); return (await this.prisma.commissionRecord.findMany({ orderBy: { earnedAt: "desc" }, take: 200 })).map((row) => this.commissionOutput(row)); }
-  async createRate(userId: string, supplierId: string, dto: CreateCommissionRateDto) { await this.rbac.requirePlatform(userId, "platform.finance.adjust"); const rate = new Prisma.Decimal(dto.rate); if (rate.lte(0) || rate.gt(1)) throw new BadRequestException("Marketplace commission rate must be greater than zero and at most 100%"); const effectiveFrom = new Date(dto.effectiveFrom); const effectiveTo = dto.effectiveTo ? new Date(dto.effectiveTo) : null; if (effectiveTo && effectiveTo <= effectiveFrom) throw new BadRequestException("effectiveTo must be after effectiveFrom"); return this.prisma.supplierCommissionRate.create({ data: { supplierId, rate, effectiveFrom, effectiveTo } }); }
+  async createRate(userId: string, supplierId: string, dto: CreateCommissionRateDto) {
+    await this.rbac.requirePlatform(userId, "platform.finance.adjust");
+    const rate = new Prisma.Decimal(dto.rate);
+    if (rate.lte(0) || rate.gt(1)) throw new BadRequestException("Marketplace commission rate must be greater than zero and at most 100%");
+    const effectiveFrom = new Date(dto.effectiveFrom);
+    const effectiveTo = dto.effectiveTo ? new Date(dto.effectiveTo) : null;
+    if (effectiveFrom < new Date(Date.now() - 60_000)) throw new BadRequestException("Commission changes cannot be backdated");
+    if (effectiveTo && effectiveTo <= effectiveFrom) throw new BadRequestException("effectiveTo must be after effectiveFrom");
+    return this.prisma.$transaction(async tx => {
+      await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Supplier" WHERE "id" = ${supplierId}::uuid FOR UPDATE`);
+      const created = await tx.supplierCommissionRate.create({ data: { supplierId, rate, effectiveFrom, effectiveTo } });
+      await this.audit.emitInTransaction(tx, {
+        actorUserId: userId, action: "SUPPLIER_COMMISSION_RATE_CREATED",
+        entityType: "SUPPLIER_COMMISSION_RATE", entityId: created.id,
+        dedupeKey: `supplier-commission:${created.id}:created`,
+        metadata: { supplierId, rate: rate.toFixed(6), effectiveFrom: effectiveFrom.toISOString(), effectiveTo: effectiveTo?.toISOString() ?? null },
+      });
+      return created;
+    });
+  }
   async manualAdjustment(userId: string, supplierId: string, dto: ManualAdjustmentDto) { await this.rbac.requirePlatform(userId, "platform.finance.adjust"); const amount = new Prisma.Decimal(dto.amount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP); if (amount.isZero()) throw new BadRequestException("Adjustment amount cannot be zero"); return this.prisma.$transaction(async tx => { const row = await tx.supplierLedgerEntry.create({ data: { supplierId, currencyCode: dto.currencyCode, type: SupplierLedgerEntryType.MANUAL_ADJUSTMENT, amountSigned: amount, referenceType: "MANUAL_ADJUSTMENT", referenceId: randomUUID(), description: dto.reason, actorUserId: userId } }); await this.audit.emitInTransaction(tx, { actorUserId: userId, action: "FINANCE_MANUAL_ADJUSTMENT", entityType: "SUPPLIER_LEDGER_ENTRY", entityId: row.id, dedupeKey: `ledger:${row.id}:manual-adjustment`, metadata: { supplierId, currencyCode: dto.currencyCode, amount: amount.toFixed(2) } }); return this.ledgerOutput(row); }); }
 
   async createSettlement(userId: string, supplierId: string, dto: CreateSettlementDto) {

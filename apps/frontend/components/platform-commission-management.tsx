@@ -74,7 +74,7 @@ export function PlatformCommissionManagement({ supplierId, canAdjust }: { suppli
         <section>
           <p className="text-sm font-semibold">Platform default</p>
           <p className="mt-2 text-2xl font-bold">{percent(defaultData.current.rate)}%</p>
-          <p className="text-xs text-foreground-muted">{defaultData.current.source === "ENV_DEFAULT" ? "Initial configured 10% fallback (until customized)" : "Platform-managed setting"}</p>
+          <p className="text-xs text-foreground-muted">{defaultData.current.source === "ENV_DEFAULT" ? "Environment-configured fallback (10% initial standard)" : "Platform-managed setting"}</p>
           {canAdjust && <form onSubmit={saveDefault} className="mt-4 space-y-3">
             <FormField label="New default commission (%)"><Input value={defaultInput} onChange={e => setDefaultInput(e.target.value)} inputMode="decimal" required /></FormField>
             <Button type="submit" disabled={busy}>Save platform default</Button>
