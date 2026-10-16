@@ -100,6 +100,24 @@ describe("staff invitations — live HTTP/PostgreSQL", () => {
     const row=await prisma.staffInvitation.findUniqueOrThrow({where:{id:invited.body.id}});
     expect(row.tokenHash).toBeNull();
     expect(row.status).toBe("ACCEPTED");
+    const staffLogin = await http("POST", "/auth/workforce/login", { email: recipient, password });
+    const staffCookie = (staffLogin.headers["set-cookie"] as string[])[0].split(";", 1)[0];
+    expect((await http("GET", `/organizations/${id}/members`, undefined, staffCookie)).status).toBe(200);
+    const membership = await prisma.organizationMembership.findUniqueOrThrow({
+      where: { organizationId_userId: { organizationId: id, userId: row.acceptedByUserId! } },
+    });
+    const changed = await http("PATCH", `/organizations/${id}/members/${membership.id}/role`,
+      { roleKey: "organization.inventory_staff" }, owner.cookie);
+    expect(changed.status).toBe(200);
+    expect((await http("GET", `/organizations/${id}/members`, undefined, staffCookie)).status).toBe(403);
+    const removed = await http("DELETE", `/organizations/${id}/members/${membership.id}`, undefined, owner.cookie);
+    expect(removed.status).toBe(200);
+    const activeAfterRemoval = await prisma.organizationMembership.findUniqueOrThrow({ where: { id: membership.id } });
+    expect(activeAfterRemoval.status).toBe("REMOVED");
+    expect((await http("GET", `/organizations/${id}/members`, undefined, staffCookie)).status).toBe(403);
+    const audits = await prisma.auditEvent.findMany({ where: { entityId: membership.id,
+      action: { in: ["SUPPLIER_STAFF_ROLE_CHANGED", "SUPPLIER_STAFF_REMOVED"] } } });
+    expect(audits).toHaveLength(2);
   });
 
   it("rejects customer-account invitations and legacy unverified invitation endpoint",async()=>{
