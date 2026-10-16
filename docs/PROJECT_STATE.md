@@ -50,6 +50,7 @@ idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LO
 - Payment remains external. Finance only records an approved settlement as PAID after independent confirmation and a transaction reference, with one idempotent `SETTLEMENT_DEBIT`. Supplier net ledger earnings already exclude platform commissions; payout must not deduct commission a second time.
 - Existing configurable commission default is 10%, but 0% rate edge cases and rounding-to-zero microfees remain possible in the code. Agree on a minimum-fee policy before making a blanket every-sale minimum claim.
 - New backend encryption secret `PAYOUT_DETAILS_ENCRYPTION_KEY` is required for destination create/reveal and must be kept in server-only secret management; schema migration is additive. No actual bank/M-Pesa payout provider is connected.
+- GitHub CI [38901310001](https://github.com/ow-tech/ecom/actions/runs/38901310001) passed 23 backend unit tests, 25 frontend test files, 83 HTTP/PostgreSQL integration tests and 15 migrations. The canonical payout test asserts $100 gross, $10 commission, $90 earnings, $90 manual paid debit and one payout record under retry.
 
 ## Current operational feature baseline — 2026-10-16
 

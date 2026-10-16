@@ -2,7 +2,7 @@
 
 ## State
 
-IMPLEMENTED_VERIFICATION_PARTIAL. Supplier capture, masked listing, immutable database record, explicitly audited privileged reveal and settlement selection are implemented across API and UI; GitHub CI tests and authenticated browser verification are the completion gates.
+LOCAL_VERIFIED. Supplier capture, masked listing, immutable database record, explicitly audited privileged reveal and settlement selection are implemented across API and UI. GitHub CI run 38901310001 passed; authenticated browser and independent actual payout evidence remain release gates.
 
 ## Business model and money invariant
 
@@ -31,10 +31,14 @@ Supplier → `/supplier/:organizationId/finance`: register bank or M-Pesa destin
 
 ## Tests / validation
 
-- Backend HTTP/PostgreSQL: `apps/backend/test/post-order-finance.int.spec.ts` tests cross-tenant denial, encrypted storage, masked response, platform access denial/reveal, M-Pesa KES validation/normalization, incorrect currency refusal, immutable settlement link, one net settlement debit and idempotent paid marking.
+- Backend HTTP/PostgreSQL (CI run 38901310001: **83/83**): `apps/backend/test/post-order-finance.int.spec.ts` tests cross-tenant denial, encrypted storage, masked response, platform access denial/reveal, M-Pesa KES validation/normalization, incorrect currency refusal, immutable settlement link, one net settlement debit and idempotent paid marking.
 - Frontend: `apps/frontend/test/supplier-payout-destinations.test.tsx`, `apps/frontend/test/platform-finance-management.test.tsx`.
 - CI: `.github/workflows/ecom-verification.yml` supplies **synthetic** test-only encryption key. Full release verification still requires real authenticated browsers, secure secrets configuration and manual payout reconciliation with actual bank/M-Pesa statements.
 
 ## Safe continuation
 
 Do not move automatic transfers into `FinanceService.markPaid`. Do not double-deduct platform commission. Do not expose decrypted instructions on ordinary finance GET routes or in audit payloads. Any later disbursement integration needs its own fenced intent, idempotency, reconciliation and provider evidence model. Confirm commission minimum and payout currency eligibility as explicit business decisions before changing historical fee economics.
+
+## Verified implementation snapshot
+
+[GitHub CI 38901310001](https://github.com/ow-tech/ecom/actions/runs/38901310001) passed: backend 23/23 unit tests; 25/25 frontend test files; 83/83 real HTTP/PostgreSQL integration tests; all 15 migrations; TypeScript, lint, and production builds. The payout integration fixture produces a $100 sale, records 10% ($10) commission, posts $90 supplier net earnings, creates a $90 bank-selected draft, and proves a single $90 settlement debit after manual paid acknowledgment; no double fee and no external money transfer. Protected reveal and server-only AES-GCM storage also pass integration. Browser/staging and external bank/M-Pesa statement evidence remain unverified.

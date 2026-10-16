@@ -257,7 +257,7 @@ Feature documentation: [platform-audit-explorer.md](features/platform-audit-expl
 
 ## Manual Bank and M-Pesa Supplier Payouts
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL. Owner-controlled encrypted payout destinations, masked supplier/platform views, privileged audited reveal and immutable selection for manual settlements are implemented. Backend/frontend CI and live operator evidence pending; no money transfer is initiated by ECOM.
+Status: LOCAL_VERIFIED. Encrypted bank/M-Pesa destinations, masked supplier/platform views, audited privileged reveal and immutable manual settlement recipient selection are verified with CI run 38901310001 (23 backend unit, 25 frontend test files, 83 HTTP/PostgreSQL integration tests). Authenticated browser, secrets deployment, external statement evidence and minimum-fee business policy remain pending. No money transfer is initiated by ECOM.
 
 Feature documentation: [manual-supplier-payouts.md](features/manual-supplier-payouts.md)
 

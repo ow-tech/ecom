@@ -18,7 +18,7 @@
 | Supplier payout reconciliation | RELEASE_VERIFICATION_REQUIRED | Bank/M-Pesa payout destinations and manual settlement choice are implemented with masked records, encrypted details and audited privileged reveal. Real bank/M-Pesa payment evidence, key provisioning, browser security verification and operator reconciliation remain pending; ECOM does not initiate transfers. |
 | Support privacy | RELEASE_VERIFICATION_REQUIRED | A–J fixture proves public reply/internal-note exclusion; browser proof remains. |
 | Tenant/platform isolation | RELEASE_VERIFICATION_REQUIRED | A–J and focused suites prove cross-supplier/customer denial; staging proof remains. |
-| Automated application regression | LOCAL_VERIFIED | GitHub dev CI run 38897430108: backend unit 23/23, frontend 24/24 test files, HTTP/PostgreSQL integration 82/82, 14 migrations, typecheck/lint/build green. Release-browser and provider proof remain separate. |
+| Automated application regression | LOCAL_VERIFIED | GitHub dev CI run 38901310001: backend unit 23/23, frontend 25/25 test files, HTTP/PostgreSQL integration 83/83, 15 migrations, typecheck/lint/build green. Release-browser and provider proof remain separate. |
 | Production DB, backups and restore | LAUNCH_BLOCKER | No tested production backup/restore evidence. |
 | Deployment and TLS | LAUNCH_BLOCKER | Deployment/Nginx/TLS remain deferred. |
 | Git release integrity | RELEASE_VERIFICATION_REQUIRED | Direct commits to GitHub `dev` and GitHub Actions verification are available. Tagged production release, rollback and provenance process still pending. |
