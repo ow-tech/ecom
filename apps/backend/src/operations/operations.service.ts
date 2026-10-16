@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { OperationalOutboxStatus, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -6,7 +7,23 @@ export type OutboxInput = { eventType: string; aggregateType: string; aggregateI
 @Injectable()
 export class OperationalOutboxService {
   constructor(private readonly prisma: PrismaService) {}
-  enqueue(tx: Prisma.TransactionClient, input: OutboxInput) { return tx.operationalOutboxEvent.upsert({ where: { dedupeKey: input.dedupeKey }, update: {}, create: input }); }
+  async enqueue(tx: Prisma.TransactionClient, input: OutboxInput) {
+    // INV-OUT-02: Prisma upsert(update: {}) can degrade into a non-atomic
+    // read-then-create when concurrent transactions race for one dedupe key.
+    // Native PostgreSQL conflict handling preserves one durable intent without
+    // creating a duplicate or rewriting the first authoritative payload.
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO "OperationalOutboxEvent"
+        ("id", "eventType", "aggregateType", "aggregateId", "dedupeKey", "payload", "organizationId", "userId", "updatedAt")
+      VALUES (
+        ${randomUUID()}::uuid, ${input.eventType}, ${input.aggregateType}, ${input.aggregateId},
+        ${input.dedupeKey}, ${JSON.stringify(input.payload)}::jsonb,
+        ${input.organizationId ?? null}::uuid, ${input.userId ?? null}::uuid, NOW()
+      )
+      ON CONFLICT ("dedupeKey") DO NOTHING
+    `);
+    return tx.operationalOutboxEvent.findUniqueOrThrow({ where: { dedupeKey: input.dedupeKey } });
+  }
   /** Active organization members having any one of the requested permissions. */
   async supplierRecipientIds(tx: Prisma.TransactionClient, supplierId: string, permissions: string[]) {
     const supplier = await tx.supplier.findUnique({ where: { id: supplierId }, select: { organizationId: true } });
