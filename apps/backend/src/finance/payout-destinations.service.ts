@@ -80,22 +80,39 @@ export class PayoutDestinationsService {
     await this.rbac.organizationContext(actorId, organizationId, "organization.members.manage");
     const supplier = await this.supplierForOrganization(organizationId);
     const normalized = this.normalize(dto);
-    const row = await this.prisma.supplierPayoutDestination.create({ data: {
-      supplierId: supplier.id, type: dto.type, currencyCode: dto.currencyCode,
-      accountHolderName: dto.accountHolderName, bankName: normalized.bankName,
-      bankCountryCode: normalized.bankCountryCode, maskedLastFour: normalized.mask,
-      encryptedDetails: this.seal(supplier.id, normalized.details), createdByUserId: actorId,
-    } });
-    await this.audit.emit({ actorUserId: actorId, organizationId, action: "PAYOUT_DESTINATION_CREATED", entityType: "SUPPLIER_PAYOUT_DESTINATION", entityId: row.id, dedupeKey: `payout-destination:${row.id}:created`, metadata: { supplierId: supplier.id, type: row.type, currencyCode: row.currencyCode } });
-    return this.safe(row);
+    const sealed = this.seal(supplier.id, normalized.details);
+    return this.prisma.$transaction(async tx => {
+      const row = await tx.supplierPayoutDestination.create({ data: {
+        supplierId: supplier.id, type: dto.type, currencyCode: dto.currencyCode,
+        accountHolderName: dto.accountHolderName, bankName: normalized.bankName,
+        bankCountryCode: normalized.bankCountryCode, maskedLastFour: normalized.mask,
+        encryptedDetails: sealed, createdByUserId: actorId,
+      } });
+      await this.audit.emitInTransaction(tx, { actorUserId: actorId, organizationId,
+        action: "PAYOUT_DESTINATION_CREATED", entityType: "SUPPLIER_PAYOUT_DESTINATION",
+        entityId: row.id, dedupeKey: `payout-destination:${row.id}:created`,
+        metadata: { supplierId: supplier.id, type: row.type, currencyCode: row.currencyCode } });
+      return this.safe(row);
+    });
   }
   async supplierDisable(actorId: string, organizationId: string, id: string) {
     await this.rbac.organizationContext(actorId, organizationId, "organization.members.manage");
     const supplier = await this.supplierForOrganization(organizationId);
-    const row = await this.prisma.supplierPayoutDestination.updateMany({ where: { id, supplierId: supplier.id, isActive: true }, data: { isActive: false } });
-    if (!row.count && !await this.prisma.supplierPayoutDestination.findFirst({ where: { id, supplierId: supplier.id } })) throw new NotFoundException("Payout destination not found");
-    await this.audit.emit({ actorUserId: actorId, organizationId, action: "PAYOUT_DESTINATION_DISABLED", entityType: "SUPPLIER_PAYOUT_DESTINATION", entityId: id, dedupeKey: `payout-destination:${id}:disabled`, metadata: { supplierId: supplier.id } });
-    return { id, isActive: false };
+    return this.prisma.$transaction(async tx => {
+      const changed = await tx.supplierPayoutDestination.updateMany({
+        where: { id, supplierId: supplier.id, isActive: true }, data: { isActive: false },
+      });
+      if (!changed.count) {
+        if (!await tx.supplierPayoutDestination.findFirst({ where: { id, supplierId: supplier.id } }))
+          throw new NotFoundException("Payout destination not found");
+        return { id, isActive: false };
+      }
+      await this.audit.emitInTransaction(tx, { actorUserId: actorId, organizationId,
+        action: "PAYOUT_DESTINATION_DISABLED", entityType: "SUPPLIER_PAYOUT_DESTINATION",
+        entityId: id, dedupeKey: `payout-destination:${id}:disabled`,
+        metadata: { supplierId: supplier.id } });
+      return { id, isActive: false };
+    });
   }
   async platformList(actorId: string, supplierId: string) {
     await this.rbac.requirePlatform(actorId, "platform.finance.read");
