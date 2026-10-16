@@ -178,9 +178,9 @@ describe("post-order refund, return, warranty, commission, ledger, and settlemen
   });
 
   it("stores encrypted supplier bank and M-Pesa details and links manual settlements without extra commission debits", async () => {
-    const f = await fixture("manual-payout-destinations", 1);
-    const unrelated = await fixture("manual-payout-unrelated", 1);
-    const viewer = await platformWith("manual-payout-finance-viewer", ["platform.finance.read"]);
+    const f = await fixture("paydest", 1);
+    const unrelated = await fixture("payother", 1);
+    const viewer = await platformWith("payviewer", ["platform.finance.read"]);
     const url = `/organizations/${f.organizationId}/finance/payout-destinations`;
     const bankDetails = { type: "BANK", currencyCode: "USD", accountHolderName: "Supplier Trading Ltd", bankName: "Example Commercial Bank", bankCountryCode: "KE", iban: "GB82WEST12345698765432", swiftBic: "ABCDEF12" };
     expect((await http("POST", url, bankDetails, unrelated.owner.cookie)).status).toBe(403);
