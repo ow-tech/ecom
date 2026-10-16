@@ -24,6 +24,7 @@ CREATE TABLE "OverseasReservation" (
 CREATE UNIQUE INDEX "OverseasReservation_orderId_supplierListingId_key" ON "OverseasReservation"("orderId","supplierListingId");
 CREATE INDEX "OverseasReservation_status_expiresAt_idx" ON "OverseasReservation"("status","expiresAt");
 ALTER TABLE "OverseasReservation" ADD CONSTRAINT "OverseasReservation_supplierListingId_fkey" FOREIGN KEY ("supplierListingId") REFERENCES "SupplierListing"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "OverseasReservation" ADD CONSTRAINT "OverseasReservation_checkoutAttemptId_fkey" FOREIGN KEY ("checkoutAttemptId") REFERENCES "CheckoutAttempt"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "OverseasReservation" ADD CONSTRAINT "OverseasReservation_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 -- Capacity and paid commitments survive cancellations/returns unless the supplier
 -- explicitly revises its available-to-order quota. Never invent physical stock.
