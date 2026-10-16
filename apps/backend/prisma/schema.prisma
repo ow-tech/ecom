@@ -379,6 +379,47 @@ model User {
   supportStatusHistory     SupportTicketStatusHistory[] @relation("SupportStatusActor")
   supportAssignmentActions SupportAssignmentHistory[]   @relation("SupportAssignmentActor")
   auditEvents              AuditEvent[]                 @relation("AuditActor")
+  staffInvitationsCreated  StaffInvitation[]            @relation("StaffInvitationCreator")
+}
+
+
+enum StaffInvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum StaffInvitationScope {
+  SUPPLIER
+  PLATFORM
+}
+
+// Pending invitations create no memberships or role grants.
+model StaffInvitation {
+  id              String                @id @default(uuid()) @db.Uuid
+  scope           StaffInvitationScope
+  organizationId  String?               @db.Uuid
+  emailNormalized String
+  email           String
+  roleKey         String
+  invitedByUserId String                @db.Uuid
+  status          StaffInvitationStatus @default(PENDING)
+  tokenHash       String?               @unique
+  expiresAt       DateTime
+  emailedAt       DateTime?
+  providerMessageId String?
+  acceptedAt      DateTime?
+  acceptedByUserId String?              @db.Uuid
+  revokedAt       DateTime?
+  sendAttempts    Int                   @default(0)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  organization    Organization?         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invitedBy       User                  @relation("StaffInvitationCreator", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([scope, organizationId, status])
+  @@index([emailNormalized, status])
 }
 
 model Credential {
@@ -432,6 +473,7 @@ model Organization {
   memberships    OrganizationMembership[]
   supplier       Supplier?
   supportTickets SupportTicket[]
+  staffInvitations StaffInvitation[]
 }
 
 model OrganizationMembership {
