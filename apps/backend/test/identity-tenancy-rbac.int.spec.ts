@@ -345,6 +345,44 @@ describe("identity, tenancy, and RBAC integration", () => {
     await expect(rbac.organizationContext(member.id, target.id, "inventory.adjust")).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it("enforces separate customer/workforce email audiences across API and direct database mutations", async () => {
+    const customer = await register("audience-customer");
+    const workerResponse = await http("POST", "/auth/workforce/register", { email: email("audience-worker"), password, displayName: "Supplier worker" });
+    expect(workerResponse.status).toBe(201);
+    const workforce = { id: (workerResponse.body as { id: string }).id, cookie: sessionFrom(workerResponse).cookie };
+    expect((workerResponse.body as { accountAudience: string }).accountAudience).toBe("WORKFORCE");
+
+    expect((await http("POST", "/auth/login", { email: email("audience-worker"), password })).status).toBe(401);
+    expect((await http("POST", "/auth/workforce/login", { email: customer.email, password })).status).toBe(401);
+    expect((await http("GET", "/auth/me", undefined, workforce.cookie)).body).toEqual(expect.objectContaining({ accountAudience: "WORKFORCE" }));
+    expect((await http("POST", "/organizations", { name: "Customer org", slug: slug("customer-restricted") }, customer.cookie)).status).toBe(403);
+    expect((await http("GET", "/customer/profile", undefined, workforce.cookie)).status).toBe(403);
+
+    const organizationRow = await organization(workforce.cookie, "audience-org");
+    const role = await prisma.role.findUniqueOrThrow({ where: { key: "platform.super_admin" } });
+    await expect(prisma.customerProfile.create({ data: { userId: workforce.id } })).rejects.toThrow();
+    await expect(prisma.organizationMembership.create({ data: { organizationId: organizationRow.id, userId: customer.id, status: "ACTIVE" } })).rejects.toThrow();
+    await expect(prisma.platformRoleAssignment.create({ data: { userId: customer.id, roleId: role.id } })).rejects.toThrow();
+    await expect(prisma.user.update({ where: { id: customer.id }, data: { accountAudience: "WORKFORCE" } })).rejects.toThrow();
+
+    expect((await http("POST", "/auth/workforce/register", { email: customer.email.toUpperCase(), password })).status).toBe(409);
+    expect((await http("POST", "/auth/register", { email: email("audience-worker").toUpperCase(), password })).status).toBe(409);
+    const invitation = await http("POST", `/organizations/${organizationRow.id}/members/invite`, { email: customer.email, roleKey: "organization.member" }, workforce.cookie);
+    expect(invitation.status).toBe(404);
+  });
+
+  it("atomically reserves the same normalized email for only one audience under registration races", async () => {
+    const mixed = email("audience-race");
+    const [customer, workforce] = await Promise.all([
+      http("POST", "/auth/register", { email: mixed.toUpperCase(), password }),
+      http("POST", "/auth/workforce/register", { email: mixed, password }),
+    ]);
+    expect([customer.status, workforce.status].sort()).toEqual([201, 409]);
+    const saved = await prisma.user.findUniqueOrThrow({ where: { emailNormalized: mixed } });
+    expect(saved.accountAudience).toBe(customer.status === 201 ? "CUSTOMER" : "WORKFORCE");
+    expect(await prisma.user.count({ where: { emailNormalized: mixed } })).toBe(1);
+  });
+
   it("preserves database uniqueness for role-permission and membership-role mappings", async () => {
     const owner = await register("constraints-owner");
     const target = await organization(owner.cookie, "constraints-target");
