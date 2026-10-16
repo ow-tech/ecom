@@ -30,6 +30,7 @@ export class SupplierStaffInvitationsController {
   @Post() invite(@CurrentUser() user: AuthenticatedUser, @Param("organizationId") organizationId: string, @Body() dto: InviteSupplierDto) {
     return this.staff.invite(user.id, StaffInvitationScope.SUPPLIER, organizationId, dto.email, dto.roleKey);
   }
+  @Post(":id/resend") resend(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) { return this.staff.resend(user.id, id); }
   @Delete(":id") revoke(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) { return this.staff.revoke(user.id, id); }
 }
 @UseGuards(SessionAuthGuard)
