@@ -11,6 +11,7 @@ const publicListingInclude = {
     },
   },
   productVariant: true,
+  supplier: { select: { overseasEnabled: true } },
   inventoryItems: {
     where: { inventoryLocation: { status: "ACTIVE" } },
     select: { onHand: true, reserved: true },
@@ -31,7 +32,7 @@ const publicProductInclude = {
     },
     include: {
       productVariant: true,
-      supplier: { select: { slug: true, displayName: true } },
+      supplier: { select: { slug: true, displayName: true, overseasEnabled: true } },
       inventoryItems: { where: { inventoryLocation: { status: "ACTIVE" } }, select: { onHand: true, reserved: true } },
     },
   },
@@ -44,7 +45,9 @@ export class PublicCatalogueService {
   constructor(private readonly prisma: PrismaService) {}
 
   private isAvailable(listing: PublicListing): boolean {
-    return listing.inventoryItems.some(item => item.onHand > item.reserved);
+    return listing.origin === "OVERSEAS"
+      ? listing.supplier.overseasEnabled && listing.overseasOrderable > listing.overseasReserved + listing.overseasCommitted
+      : listing.inventoryItems.some(item => item.onHand > item.reserved);
   }
 
   private project(listing: PublicListing) {
@@ -57,7 +60,7 @@ export class PublicCatalogueService {
       price: listing.price.toFixed(2),
       origin: listing.origin, deliveryMinDays: listing.deliveryMinDays, deliveryMaxDays: listing.deliveryMaxDays,
       currencyCode: listing.currencyCode,
-      availableQuantity: listing.inventoryItems.reduce((total, item) => total + item.onHand - item.reserved, 0),
+      availableQuantity: listing.origin === "OVERSEAS" ? listing.overseasOrderable - listing.overseasReserved - listing.overseasCommitted : listing.inventoryItems.reduce((total, item) => total + item.onHand - item.reserved, 0),
       product: {
         id: listing.product.id,
         slug: listing.product.slug,
@@ -70,7 +73,9 @@ export class PublicCatalogueService {
   }
 
   private productAvailableListings(product: PublicProduct) {
-    return product.listings.filter(listing => listing.inventoryItems.some(item => item.onHand > item.reserved));
+    return product.listings.filter(listing => listing.origin === "OVERSEAS"
+      ? listing.supplier.overseasEnabled && listing.overseasOrderable > listing.overseasReserved + listing.overseasCommitted
+      : listing.inventoryItems.some(item => item.onHand > item.reserved));
   }
 
   private projectOffer(listing: PublicProduct["listings"][number]) {
