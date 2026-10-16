@@ -18,6 +18,7 @@ export class CreatePickupPointDto {
   @IsOptional() @IsLongitude() longitude?: string;
   @IsOptional() @IsString() @MaxLength(40) @Transform(trim) phone?: string;
   @IsOptional() @IsObject() openingHours?: Record<string, unknown>;
+  @IsOptional() @Matches(/^[A-Z]{3}$/) @Transform(upper) currencyCode?: string;
   @Matches(/^\d+(\.\d{1,2})?$/) pickupFee!: string;
   @IsOptional() @Type(() => Number) @IsInt() @IsPositive() storageLimitDays?: number;
   @IsOptional() @IsEnum(PickupPointStatus) status?: PickupPointStatus;

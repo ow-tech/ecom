@@ -12,7 +12,7 @@ vi.mock("../lib/api", () => ({ api }));
 import { DeliveryManagement } from "../components/platform-delivery-management";
 
 const fixture = () => {
-  api.platformPickupPoints.mockResolvedValue([{ id: "point-a", name: "CBD Collection", pickupFee: "100.00", countryCode: "KE", city: "Nairobi", region: "Nairobi", address: "CBD", status: "ACTIVE" }]);
+  api.platformPickupPoints.mockResolvedValue([{ id: "point-a", name: "CBD Collection", pickupFee: "100.00", currencyCode: "KES", countryCode: "KE", city: "Nairobi", region: "Nairobi", address: "CBD", status: "ACTIVE" }]);
   api.platformDeliveryZones.mockResolvedValue([{ id: "zone-a", name: "Nairobi Zone", countryCode: "KE", status: "ACTIVE" }]);
   api.platformDeliveryRates.mockResolvedValue([{ id: "rate-a", name: "CBD Delivery", amount: "200.00", currencyCode: "KES", deliveryZoneId: "zone-a", status: "ACTIVE" }]);
   api.platformDeliveryQuotes.mockResolvedValue([{ id: "quote-a", orderId: "order-a", status: "PENDING" }]);

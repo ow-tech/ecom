@@ -37,6 +37,15 @@ export class CheckoutService {
     return ["CARD", ...(currencyCode === "KES" && this.config.get<boolean>("PAYSTACK_MPESA_ENABLED", false) ? ["MPESA"] : [])];
   }
 
+  // INV-PICKUP-CURRENCY-01: never add a pickup charge in an unrelated currency.
+  // Zero-fee locations are valid for any cart currency.
+  private pickupCharge(point: { pickupFee: Prisma.Decimal; currencyCode: string } | null, currencyCode: string): Prisma.Decimal {
+    if (!point) return new Prisma.Decimal(0);
+    if (!point.pickupFee.isZero() && point.currencyCode !== currencyCode)
+      throw commerceConflict("PICKUP_FEE_CURRENCY_MISMATCH", "Pickup fee currency does not match this cart. Choose a compatible pickup point.");
+    return point.pickupFee;
+  }
+
   private assertFulfillment(dto: PrepareCheckoutDto) {
     if (dto.fulfillmentMethod === FulfillmentMethod.DELIVERY && !dto.addressId) throw new BadRequestException("addressId is required for delivery");
     if (dto.fulfillmentMethod === FulfillmentMethod.PICKUP && !dto.pickupPointId) throw new BadRequestException("pickupPointId is required for pickup");
@@ -65,7 +74,7 @@ export class CheckoutService {
       }
       const automatic = address ? await this.deliveryZones.resolve(address, cart.currencyCode, tx) : null;
       const deliveryFee = automatic?.rate.amount ?? new Prisma.Decimal(0);
-      const pickupFee = pickupPoint?.pickupFee ?? new Prisma.Decimal(0);
+      const pickupFee = this.pickupCharge(pickupPoint, cart.currencyCode);
       const deliveryQuoteRequired = Boolean(address && !automatic);
       return { currencyCode: cart.currencyCode, subtotal: subtotal.toFixed(2), deliveryFee: deliveryFee.toFixed(2), pickupFee: pickupFee.toFixed(2), total: subtotal.plus(deliveryFee).plus(pickupFee).toFixed(2), deliveryQuoteRequired, availablePaymentMethods: this.availablePaymentMethods(cart.currencyCode) };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -107,7 +116,7 @@ export class CheckoutService {
 
           const automatic = address ? await this.deliveryZones.resolve(address, cart.currencyCode!, tx) : null;
           const deliveryFee = automatic?.rate.amount ?? new Prisma.Decimal(0);
-          const pickupFee = pickupPoint?.pickupFee ?? new Prisma.Decimal(0);
+          const pickupFee = this.pickupCharge(pickupPoint, cart.currencyCode!);
           const status = address && !automatic ? OrderStatus.AWAITING_DELIVERY_QUOTE : OrderStatus.PENDING_PAYMENT;
           const order = await tx.order.create({ data: { orderNumber: this.orderNumber(), customerProfileId: profile.id, checkoutAttemptId: checkoutAttempt.id, status, currencyCode: cart.currencyCode!, subtotal, deliveryFee, pickupFee, total: subtotal.plus(deliveryFee).plus(pickupFee), fulfillmentMethod: dto.fulfillmentMethod } });
           if (address) await tx.orderDeliveryAddress.create({ data: { orderId: order.id, recipientName: address.recipientName, phone: address.phone, alternativePhone: address.alternativePhone, countryCode: address.countryCode, region: address.region, city: address.city, estate: address.estate, street: address.street, building: address.building, houseNumber: address.houseNumber, landmark: address.landmark, latitude: address.latitude, longitude: address.longitude, deliveryNotes: address.deliveryNotes } });

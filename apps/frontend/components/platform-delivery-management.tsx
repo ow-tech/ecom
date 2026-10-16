@@ -68,8 +68,8 @@ export function DeliveryManagement({ permissions }: { permissions: string[] }) {
   return <div className="mt-7 space-y-7">
     {error && <Alert tone="error">{error}</Alert>}{notice && <Alert tone="success">{notice}</Alert>}
     {loading ? <Skeleton className="h-48" /> : <>
-      {pickupRead && <Card><SectionHeader title="Pickup points" description="Only active locations are available during checkout. Fees retain the existing server-defined money contract." />
-        <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>Name</th><th>Location</th><th>Fee</th><th>Status</th><th>Action</th></tr></thead><tbody>{rows.points.map(p => <tr key={p.id} className="border-t border-border"><td className="p-2">{p.name}</td><td className="p-2">{p.city}, {p.region}</td><td className="p-2 tabular-nums">{p.pickupFee}</td><td className="p-2"><StatusBadge>{p.status}</StatusBadge></td><td className="p-2">{pickupManage && <Button variant="outline" disabled={busy} onClick={() => setEditing({ kind: "point", row: p })}>Edit</Button>}</td></tr>)}</tbody></table></div>
+      {pickupRead && <Card><SectionHeader title="Pickup points" description="Only active locations are available during checkout. Fees are priced in the configured currency. Existing records were backfilled as KES." />
+        <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>Name</th><th>Location</th><th>Fee</th><th>Status</th><th>Action</th></tr></thead><tbody>{rows.points.map(p => <tr key={p.id} className="border-t border-border"><td className="p-2">{p.name}</td><td className="p-2">{p.city}, {p.region}</td><td className="p-2"><Money value={p.pickupFee} currency={p.currencyCode} /></td><td className="p-2"><StatusBadge>{p.status}</StatusBadge></td><td className="p-2">{pickupManage && <Button variant="outline" disabled={busy} onClick={() => setEditing({ kind: "point", row: p })}>Edit</Button>}</td></tr>)}</tbody></table></div>
         {pickupManage && <form className="mt-5 grid gap-3 sm:grid-cols-3" onSubmit={point}>
           <FormField label="Point name"><Input name="name" required maxLength={160}/></FormField>
           <FormField label="Point code"><Input name="code" required maxLength={80}/></FormField>
@@ -78,6 +78,7 @@ export function DeliveryManagement({ permissions }: { permissions: string[] }) {
           <FormField label="Region / county"><Input name="region" required/></FormField>
           <FormField label="City / town"><Input name="city" required/></FormField>
           <FormField label="Address"><Input name="address" required/></FormField>
+          <FormField label="Pickup fee currency"><Input name="currencyCode" defaultValue="KES" minLength={3} maxLength={3} required/></FormField>
           <FormField label="Collection fee"><Input name="pickupFee" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" defaultValue="0.00" required/></FormField>
           <div className="flex items-end"><Button type="submit" disabled={busy}>Create pickup point</Button></div>
         </form>}

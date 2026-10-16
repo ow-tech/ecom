@@ -37,7 +37,7 @@ jobs:
       REDIS_URL: redis://127.0.0.1:6379
       BACKEND_PORT: "4001"
       COLLECTION_CODE_SECRET: ecom-ci-only-collection-secret-never-for-production
-      SESSION_COOKIE_NAME: ecom_ci_session
+      SESSION_COOKIE_NAME: ecom_test_session
       PAYSTACK_ENVIRONMENT: test
       PAYSTACK_SECRET_KEY: sk_test_integration_only
       PAYSTACK_BASE_URL: http://127.0.0.1:9

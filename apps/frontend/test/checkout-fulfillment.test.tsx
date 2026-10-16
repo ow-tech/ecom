@@ -18,7 +18,7 @@ vi.mock("../lib/paystack-hosted", () => ({ redirectToPaystackHostedCheckout: moc
 import CheckoutPage from "../app/checkout/page";
 
 const address = { id: "11111111-1111-4111-8111-111111111111", label: "Home", recipientName: "QA customer", phone: "+254700000000", countryCode: "KE", region: "Nairobi", city: "Nairobi", estate: null, street: "Main", building: null, houseNumber: null, landmark: null, alternativePhone: null, deliveryNotes: null, isDefault: true };
-const point = { id: "22222222-2222-4222-8222-222222222222", name: "QA pickup", code: "QA", slug: "qa", countryCode: "KE", region: "Nairobi", city: "Nairobi", address: "Collection road", landmark: null, phone: null, pickupFee: "25.00", storageLimitDays: 3 };
+const point = { id: "22222222-2222-4222-8222-222222222222", name: "QA pickup", code: "QA", slug: "qa", countryCode: "KE", region: "Nairobi", city: "Nairobi", address: "Collection road", landmark: null, phone: null, pickupFee: "25.00", currencyCode: "KES", storageLimitDays: 3 };
 const prepared = { orderId: "order", orderNumber: "EC-QA", status: "PENDING_PAYMENT", paymentStatus: "UNPAID", fulfillmentMethod: "DELIVERY", currencyCode: "KES", subtotal: "10.00", deliveryFee: "0.00", pickupFee: "0.00", total: "10.00", deliveryQuoteRequired: false, supplierOrderCount: 1, createdAt: "2026-10-11T00:00:00.000Z" };
 const preview = { currencyCode: "KES", subtotal: "10.00", deliveryFee: "0.00", pickupFee: "0.00", total: "10.00", deliveryQuoteRequired: false, availablePaymentMethods: ["CARD"] };
 

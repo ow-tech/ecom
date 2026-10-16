@@ -944,6 +944,7 @@ model PickupPoint {
   phone            String?               @db.VarChar(40)
   openingHours     Json?
   pickupFee        Decimal               @db.Decimal(18, 2)
+  currencyCode     String                @default("KES") @db.VarChar(3)
   storageLimitDays Int?
   status           PickupPointStatus     @default(ACTIVE)
   createdAt        DateTime              @default(now())
