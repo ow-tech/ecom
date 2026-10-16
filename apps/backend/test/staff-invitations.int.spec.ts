@@ -132,4 +132,38 @@ describe("staff invitations — live HTTP/PostgreSQL", () => {
     const old=await http("POST",`/organizations/${id}/members/invite`,{email:email("customer"),roleKey:"organization.member"},owner.cookie);
     expect(old.status).toBe(410);
   });
+  it("enforces root-only head-admin appointments, head-admin delegation and protected-root authority",async()=>{
+    const root=await workforce("platform-root");
+    const head=await workforce("platform-head");
+    const subordinate=await workforce("platform-subordinate");
+    const rootRole=await prisma.role.findUniqueOrThrow({where:{key:"platform.super_admin"}});
+    const headRole=await prisma.role.findUniqueOrThrow({where:{key:"platform.head_admin"}});
+    await prisma.platformRoleAssignment.create({data:{userId:root.id,roleId:rootRole.id}});
+    const appoint=await http("PATCH",`/platform/staff/${head.id}/role`,{roleKey:"platform.head_admin",assign:true},root.cookie);
+    expect(appoint.status).toBe(200);
+    const headInvitation=await http("POST","/platform/staff-invitations",
+      {email:email("new-platform-staff"),roleKey:"platform.operations_admin"},head.cookie);
+    expect(headInvitation.status).toBe(201);
+    const forbiddenHead=await http("POST","/platform/staff-invitations",
+      {email:email("another-head"),roleKey:"platform.head_admin"},head.cookie);
+    expect(forbiddenHead.status).toBe(403);
+    const peerChange=await http("PATCH",`/platform/staff/${root.id}/role`,
+      {roleKey:"platform.operations_admin",assign:true},head.cookie);
+    expect(peerChange.status).toBe(403);
+    const selfChange=await http("PATCH",`/platform/staff/${head.id}/role`,
+      {roleKey:"platform.operations_admin",assign:true},head.cookie);
+    expect(selfChange.status).toBe(403);
+    const grant=await http("PATCH",`/platform/staff/${subordinate.id}/role`,
+      {roleKey:"platform.operations_admin",assign:true},head.cookie);
+    expect(grant.status).toBe(200);
+    const remove=await http("PATCH",`/platform/staff/${subordinate.id}/role`,
+      {roleKey:"platform.operations_admin",assign:false},head.cookie);
+    expect(remove.status).toBe(200);
+    const rootCannotBeRemoved=await http("PATCH",`/platform/staff/${root.id}/role`,
+      {roleKey:"platform.head_admin",assign:false},head.cookie);
+    expect(rootCannotBeRemoved.status).toBe(403);
+    expect(await prisma.platformRoleAssignment.count({where:{userId:root.id,roleId:rootRole.id}})).toBe(1);
+    expect(await prisma.platformRoleAssignment.count({where:{userId:head.id,roleId:headRole.id}})).toBe(1);
+  });
+
 });
