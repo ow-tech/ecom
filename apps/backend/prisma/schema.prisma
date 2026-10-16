@@ -59,6 +59,11 @@ enum ProductVariantStatus {
   INACTIVE
 }
 
+enum ListingOrigin {
+  LOCAL
+  OVERSEAS
+}
+
 enum SupplierListingStatus {
   DRAFT
   ACTIVE
@@ -505,6 +510,7 @@ model Supplier {
   legalName          String?                  @db.VarChar(160)
   slug               String                   @unique @db.VarChar(140)
   status             SupplierStatus           @default(DRAFT)
+  overseasEnabled    Boolean                  @default(false)
   description        String?
   businessEmail      String?                  @db.VarChar(320)
   businessPhone      String?                  @db.VarChar(40)
@@ -609,6 +615,9 @@ model SupplierListing {
   price               Decimal               @db.Decimal(18, 2)
   currencyCode        String                @db.VarChar(3)
   status              SupplierListingStatus @default(DRAFT)
+  origin              ListingOrigin         @default(LOCAL)
+  deliveryMinDays     Int?
+  deliveryMaxDays     Int?
   warrantyDays        Int?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
@@ -1039,6 +1048,9 @@ model OrderItem {
   lineTotal            Decimal             @db.Decimal(18, 2)
   currencyCode         String              @db.VarChar(3)
   warrantyDaysSnapshot Int?
+  originSnapshot       ListingOrigin @default(LOCAL)
+  deliveryMinDaysSnapshot Int?
+  deliveryMaxDaysSnapshot Int?
   createdAt            DateTime            @default(now())
   order                Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
   supplierOrder        SupplierOrder       @relation(fields: [supplierOrderId], references: [id], onDelete: Restrict)
