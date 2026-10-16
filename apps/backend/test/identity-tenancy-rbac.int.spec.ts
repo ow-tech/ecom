@@ -381,6 +381,11 @@ describe("identity, tenancy, and RBAC integration", () => {
     const saved = await prisma.user.findUniqueOrThrow({ where: { emailNormalized: mixed } });
     expect(saved.accountAudience).toBe(customer.status === 201 ? "CUSTOMER" : "WORKFORCE");
     expect(await prisma.user.count({ where: { emailNormalized: mixed } })).toBe(1);
+    await expect(prisma.user.create({ data: {
+      email: mixed.toUpperCase(), emailNormalized: mixed.toUpperCase(),
+      accountAudience: "WORKFORCE",
+    } })).rejects.toThrow();
+    expect(await prisma.user.count({ where: { emailNormalized: mixed } })).toBe(1);
   });
 
   it("preserves database uniqueness for role-permission and membership-role mappings", async () => {
