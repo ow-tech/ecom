@@ -627,6 +627,7 @@ model SupplierListing {
   inventoryItems      InventoryItem[]
   cartItems           CartItem[]
   orderItems          OrderItem[]
+  overseasReservations OverseasReservation[]
 
   @@index([supplierId, status])
   @@index([productId, status])
@@ -822,6 +823,7 @@ model Order {
   deliveryQuote           DeliveryQuote?
   items                   OrderItem[]
   supplierOrders          SupplierOrder[]
+  overseasReservations OverseasReservation[]
   statusHistory           OrderStatusHistory[]
   reservations            InventoryReservation[]
   payments                Payment[]
@@ -1065,6 +1067,26 @@ model OrderItem {
 
   @@index([orderId])
   @@index([supplierOrderId])
+}
+
+
+// Overseas orderable capacity is a supplier promise, never physical stock.
+// Capacity is consumed on successful authoritative payment settlement.
+model OverseasReservation {
+  id               String            @id @default(uuid()) @db.Uuid
+  supplierListingId String            @db.Uuid
+  checkoutAttemptId String            @db.Uuid
+  orderId          String            @db.Uuid
+  quantity         Int
+  status           ReservationStatus @default(ACTIVE)
+  expiresAt        DateTime
+  releasedAt       DateTime?
+  consumedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  listing          SupplierListing   @relation(fields: [supplierListingId], references: [id], onDelete: Restrict)
+  order            Order             @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  @@unique([orderId,supplierListingId])
+  @@index([status,expiresAt])
 }
 
 model InventoryReservation {
