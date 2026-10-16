@@ -71,7 +71,10 @@ export class SupplierListingsService {
       data: listings.map(({ inventoryItems, supplier, product, productVariant, ...listing }) => ({
         id: listing.id, product, productVariant, supplier: { id: supplier.id, displayName: supplier.displayName },
         price: listing.price.toFixed(2), currencyCode: listing.currencyCode, status: listing.status,
-        availability: inventoryItems.some(item => item.onHand > item.reserved) ? "IN_STOCK" : "OUT_OF_STOCK",
+        origin: listing.origin, deliveryMinDays: listing.deliveryMinDays, deliveryMaxDays: listing.deliveryMaxDays,
+        availability: listing.origin === ListingOrigin.OVERSEAS
+          ? (listing.overseasOrderable > listing.overseasReserved + listing.overseasCommitted ? "AVAILABLE_TO_ORDER" : "OUT_OF_STOCK")
+          : (inventoryItems.some(item => item.onHand > item.reserved) ? "IN_STOCK" : "OUT_OF_STOCK"),
         createdAt: listing.createdAt, updatedAt: listing.updatedAt,
       })),
       page: query.page, limit: query.limit, total,
