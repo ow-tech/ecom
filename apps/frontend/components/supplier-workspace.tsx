@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, ApiError } from "../lib/api";
 import { Alert, Button, Card, EmptyState, ErrorState, FormField, Input, Money, PageHeader, SectionHeader, Select, Skeleton, StatusBadge, Textarea } from "./ui";
 import { useSession } from "./session-provider";
+import { SupplierReports } from "./supplier-reports";
 import { SupplierStaffManagement } from "./supplier-staff-management";
 
 type Props = { organizationId: string; section: string };
@@ -15,6 +16,7 @@ const allowed = (permissions: string[], permission: string) => permissions.inclu
 export function SupplierWorkspace({ organizationId, section }: Props) {
   const { session } = useSession();
   const permissions = session?.organizations.find((item) => item.id === organizationId)?.permissions ?? [];
+  if (section === "reports") return <SupplierReports key={organizationId} organizationId={organizationId} />;
   if (section === "staff") return <SupplierStaffManagement key={organizationId} organizationId={organizationId} permissions={permissions} actorUserId={session?.id ?? ""} />;
   if (section === "profile") return <Profile organizationId={organizationId} permissions={permissions} />;
   if (section === "listings") return <Listings organizationId={organizationId} permissions={permissions} />;

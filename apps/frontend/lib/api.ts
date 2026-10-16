@@ -1,3 +1,9 @@
+export type SupplierReport = {
+  period: { since: string; label: string };
+  overview: { activeListings: number | null; stockAttention: number | null; preparing: number | null; ready: number | null };
+  orderStatuses: Array<{ status: string; count: number }> | null;
+  paidMerchandise: Array<{ currencyCode: string; paidSupplierOrders: number; subtotal: string }> | null;
+};
 export type OrganizationStaff = {
   id: string; status: "INVITED" | "ACTIVE" | "SUSPENDED" | "REMOVED"; createdAt: string;
   roleKey: string | null; user: { id: string; email: string; displayName: string | null };
@@ -107,6 +113,7 @@ export const api = {
   removeOrganizationStaff: (organizationId: string, id: string) => request<unknown>(`/organizations/${encodeURIComponent(organizationId)}/members/${encodeURIComponent(id)}`, { method: "DELETE" }),
   organizationInvitations: () => request<OrganizationInvitation[]>("/organization-invitations"),
   acceptOrganizationInvitation: (id: string) => request<{ status: string; organizationId: string }>(`/organization-invitations/${encodeURIComponent(id)}/accept`, { method: "POST" }),
+  supplierReport: (organizationId: string) => request<SupplierReport>(`/organizations/${encodeURIComponent(organizationId)}/reports`),
   supplier: (organizationId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier`),
   supplierOverview: (organizationId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier/overview`),
   updateSupplier: (organizationId: string, input: Record<string, unknown>) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier`, { method: "PATCH", body: JSON.stringify(input) }),

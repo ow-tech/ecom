@@ -4,7 +4,9 @@ import { PlatformSuppliersController } from "./platform-suppliers.controller";
 import { SupplierLifecycleService } from "./supplier-lifecycle.service";
 import { SuppliersController } from "./suppliers.controller";
 import { SuppliersService } from "./suppliers.service";
+import { SupplierReportsController } from "./supplier-reports.controller";
+import { SupplierReportsService } from "./supplier-reports.service";
 import { AuditModule } from "../audit/audit.module";
 
-@Module({ imports: [AuthModule, AuditModule], controllers: [SuppliersController, PlatformSuppliersController], providers: [SuppliersService, SupplierLifecycleService] })
+@Module({ imports: [AuthModule, AuditModule], controllers: [SuppliersController, PlatformSuppliersController, SupplierReportsController], providers: [SuppliersService, SupplierLifecycleService, SupplierReportsService] })
 export class SuppliersModule {}

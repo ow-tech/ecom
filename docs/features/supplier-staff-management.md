@@ -1,6 +1,6 @@
 # Supplier Staff and Membership Management
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL until live CI integration and responsive browser proof.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL — latest CI on `dev` passed backend, frontend and 78 HTTP/PostgreSQL tests; authenticated browser proof remains pending.
 
 Existing registered users are invited by an organization owner, accept via their own authenticated account, and receive only the selected organization-scoped role. Membership removal immediately blocks organization requests because `RbacService.organizationContext` resolves active membership per API call.
 

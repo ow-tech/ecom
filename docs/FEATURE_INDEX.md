@@ -32,6 +32,12 @@ Status: Implemented
 
 Feature documentation: [supplier-domain.md](features/supplier-domain.md)
 
+## Supplier Operational and Paid Merchandise Reporting
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Server-derived 30-day supplier order-status metrics and currency-separated gross paid merchandise, with separate order/finance RBAC gates. CI and authenticated browser verification pending.
+
+Feature documentation: [supplier-reporting.md](features/supplier-reporting.md)
+
 ## Supplier Staff & Permissions
 
 Status: IMPLEMENTED_VERIFICATION_PARTIAL. Registered staff invitation, authenticated acceptance, least-privilege roles, revocation, role changes, and supplier/account UI. CI and responsive browser verification pending.

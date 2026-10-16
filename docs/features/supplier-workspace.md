@@ -84,3 +84,7 @@ introduced by this task.
 ## Staff and permissions
 
 The Supplier Workspace now has `/staff`, gated by `organization.members.read` and implemented through [supplier-staff-management.md](supplier-staff-management.md). Existing inventory, fulfilment and finance views continue to depend on backend permissions, not a client-selected role.
+
+## Supplier reports
+
+The `/reports` section shows server-derived operational metrics from the canonical overview, plus status counts and currency-grouped gross paid merchandise. The backend returns `null` for reports whose permission is not granted. See [supplier-reporting.md](supplier-reporting.md).

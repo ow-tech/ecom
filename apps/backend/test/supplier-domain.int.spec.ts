@@ -279,6 +279,33 @@ describe("supplier domain integration", () => {
     const noBaseline = await account("overview-no-baseline"); await addPermissionMembership(noBaseline.id, orgA.id, ["orders.read"]); expect((await http("GET", `/organizations/${orgA.id}/supplier/overview`, undefined, noBaseline.cookie)).status).toBe(403);
   });
 
+  it("returns currency-isolated paid merchandise and hides financial reporting without finance.read", async () => {
+    const owner = await account("report-owner");
+    const { orgA, orgB } = await overviewFixtures(owner);
+    const report = await http("GET", `/organizations/${orgA.id}/reports`, undefined, owner.cookie);
+    expect(report.status).toBe(200);
+    expect(report.body).toEqual(expect.objectContaining({
+      period: expect.objectContaining({ label: "Last 30 days" }),
+      overview: expect.objectContaining({ activeListings: 22, stockAttention: 2 }),
+      paidMerchandise: [{ currencyCode: "USD", paidSupplierOrders: 26, subtotal: "260.00" }],
+    }));
+    expect((report.body as { orderStatuses: Array<{ status: string; count: number }> }).orderStatuses.reduce((n, row) => n + row.count, 0)).toBe(26);
+
+    const reader = await account("report-readonly");
+    await addPermissionMembership(reader.id, orgA.id, ["supplier.read", "orders.read"]);
+    const scoped = await http("GET", `/organizations/${orgA.id}/reports`, undefined, reader.cookie);
+    expect(scoped.status).toBe(200);
+    expect(scoped.body).toEqual(expect.objectContaining({ paidMerchandise: null, orderStatuses: expect.any(Array) }));
+    const financeViewer = await account("report-finance");
+    await addPermissionMembership(financeViewer.id, orgA.id, ["supplier.read", "finance.read"]);
+    const financial = await http("GET", `/organizations/${orgA.id}/reports`, undefined, financeViewer.cookie);
+    expect(financial.status).toBe(200);
+    expect(financial.body).toEqual(expect.objectContaining({ orderStatuses: null, paidMerchandise: [{ currencyCode: "USD", paidSupplierOrders: 26, subtotal: "260.00" }] }));
+    const outsider = await account("report-outsider");
+    expect((await http("GET", `/organizations/${orgA.id}/reports`, undefined, outsider.cookie)).status).toBe(403);
+    expect((await http("GET", `/organizations/${orgB.id}/reports`, undefined, reader.cookie)).status).toBe(403);
+  });
+
   it("denies overview requests whose URL organization is not an active supplier membership", async () => {
     const owner = await account("overview-isolation-owner"); const { orgA, orgB } = await overviewFixtures(owner); const member = await account("overview-active"); const suspended = await account("overview-suspended"); const platform = await account("overview-platform");
     await addPermissionMembership(member.id, orgA.id, ["supplier.read"]); await addPermissionMembership(suspended.id, orgA.id, ["supplier.read"], MembershipStatus.SUSPENDED); await makePlatformAdmin(platform.id);
