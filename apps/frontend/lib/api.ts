@@ -25,7 +25,7 @@ export type PlatformOutboxEvent = {
   lastErrorCode: string | null; createdAt: string;
 };
 export type PlatformOutboxPage = { items: PlatformOutboxEvent[]; total: number; page: number; limit: number };
-export type Session = { id: string; email: string; displayName: string | null; organizations: OrganizationContext[]; platformPermissions: string[] };
+export type Session = { id: string; email: string; displayName: string | null; accountAudience: "CUSTOMER" | "WORKFORCE"; organizations: OrganizationContext[]; platformPermissions: string[] };
 export type CatalogueCategory = { id: string; name: string; slug: string; description: string | null; parentId: string | null };
 export type CatalogueItem = {
   id: string; title: string; description: string | null; brand: string | null; price: string; currencyCode: string; availableQuantity: number;
@@ -133,7 +133,9 @@ function publicProductQuery(query: { category?: string; search?: string; supplie
 export const api = {
   me: () => request<Session>("/auth/me"),
   login: (email: string, password: string) => request<unknown>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  workforceLogin: (email: string, password: string) => request<unknown>("/auth/workforce/login", { method: "POST", body: JSON.stringify({ email, password }) }),
   register: (email: string, password: string, displayName: string) => request<unknown>("/auth/register", { method: "POST", body: JSON.stringify({ email, password, displayName: displayName || undefined }) }),
+  workforceRegister: (email: string, password: string, displayName?: string) => request<unknown>("/auth/workforce/register", { method: "POST", body: JSON.stringify({ email, password, displayName: displayName || undefined }) }),
   logout: () => request<unknown>("/auth/logout", { method: "POST" }),
   accountNotifications: (page = 1, limit = 20) => request<AccountNotificationsPage>(`/notifications?page=${page}&limit=${limit}`),
   unreadNotificationCount: () => request<{ count: number }>("/notifications/unread-count"),

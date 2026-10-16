@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 const emails = ["admin@gmail.com", "customer@gmail.com", "supplier@gmail.com", "inventory.staff@gmail.com"];
 async function main() {
   const users = await prisma.user.findMany({ where: { emailNormalized: { in: emails } }, include: { credential: true } });
+  if (users.some(user => user.accountAudience !== (user.emailNormalized.startsWith("customer") ? "CUSTOMER" : "WORKFORCE"))) throw new Error("QA account-audience separation failed");
   if (users.length !== emails.length || users.some(user => !user.credential)) throw new Error("QA account fixture is incomplete");
   if (!(await Promise.all(users.map(user => argon2.verify(user.credential!.passwordHash, process.env.QA_SEED_PASSWORD!)))).every(Boolean)) throw new Error("QA password verification failed");
   const [categories, products, listings, inventory, suppliers, pickupPoints, profiles] = await Promise.all([

@@ -52,7 +52,9 @@ async function qaUser(email: string, displayName: string) {
   const existing = await prisma.user.findUnique({ where: { emailNormalized: email } });
   if (existing && !existing.displayName?.startsWith("QA ")) throw new Error(`Refusing to adopt non-QA account: ${email}`);
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-  return prisma.user.upsert({ where: { emailNormalized: email }, update: { displayName, status: "ACTIVE" }, create: { email, emailNormalized: email, displayName, status: "ACTIVE", credential: { create: { passwordHash } } } });
+  const accountAudience = email.startsWith("customer") ? "CUSTOMER" : "WORKFORCE";
+  if (existing && existing.accountAudience !== accountAudience) throw new Error(`QA user audience mismatch: ${email}`);
+  return prisma.user.upsert({ where: { emailNormalized: email }, update: { displayName, status: "ACTIVE" }, create: { email, emailNormalized: email, accountAudience, displayName, status: "ACTIVE", credential: { create: { passwordHash } } } });
 }
 
 async function membership(userId: string, organizationId: string, roleKey: string) {
