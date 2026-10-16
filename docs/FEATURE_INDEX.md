@@ -34,7 +34,7 @@ Feature documentation: [identity-tenancy-rbac.md](features/identity-tenancy-rbac
 
 ## Exclusive Account Audiences, Supplier Email Invitations and Head Admin — Planned
 
-Status: PHASE_1_LOCAL_VERIFIED. Exclusive CUSTOMER/WORKFORCE identities, case-folded email collision/race safety, fail-closed mixed-account migration, database and API guards, customer/staff login separation, QA typing, and UI regression pass CI 38917521648 (23 unit, 27 frontend files, 86 HTTP/PostgreSQL integration, 18 migrations). Phase 2 supplier-admin email invitations and Phase 3 head-admin roles remain PLANNED; production migration preflight and browser release verification remain blockers.
+Status: PHASE_1_LOCAL_VERIFIED. Exclusive CUSTOMER/WORKFORCE identities, case-folded email collision/race safety, fail-closed mixed-account migration, database and API guards, customer/staff login separation, QA typing, and UI regression pass CI 38918326189 (23 unit, 27 frontend files, 86 HTTP/PostgreSQL integration, 19 migrations). Phase 2 supplier-admin email invitations and Phase 3 head-admin roles remain PLANNED; production migration preflight and browser release verification remain blockers.
 
 Phase 1 implementation: [account-audience-phase1.md](features/account-audience-phase1.md). Phases 2–3: [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md)
 

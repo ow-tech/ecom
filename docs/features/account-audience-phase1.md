@@ -1,7 +1,7 @@
 # Phase 1 — Exclusive customer and workforce accounts
 
 ## Status
-LOCAL_VERIFIED. GitHub Actions [38917521648](https://github.com/ow-tech/ecom/actions/runs/38917521648) passed 23/23 backend unit tests, 27/27 frontend test files, 86/86 real HTTP/PostgreSQL integration tests, 18 migrations, TypeScript, lint and production build. Customer/workforce DB audience guardrails, customer profile and organization/role restrictions, audience-scoped login and registration, case-insensitive collision/race tests, safe migration, QA classification and UI authentication tests are implemented on `dev`. Authenticated real-browser verification, production database preflight, staff invitation email and production workforce bootstrap are NOT verified or delivered.
+LOCAL_VERIFIED. GitHub Actions [38918326189](https://github.com/ow-tech/ecom/actions/runs/38918326189) passed 23/23 backend unit tests, 27/27 frontend test files, 86/86 real HTTP/PostgreSQL integration tests, 19 migrations, TypeScript, lint and production build. Customer/workforce DB audience guardrails, customer profile and organization/role restrictions, audience-scoped login and registration, case-insensitive collision/race tests, safe migration, QA classification and UI authentication tests are implemented on `dev`. Authenticated real-browser verification, production database preflight, staff invitation email and production workforce bootstrap are NOT verified or delivered.
 
 ## Read-only preflight (mandatory before any database migration)
 The migration `20261016190000_exclusive_account_audience` **fails closed** when it finds users who own both any `CustomerProfile` and an organization membership or platform role. A lazy empty profile is still a conflict until the account owner validates it and its related objects. Do not delete, reassign or convert the user automatically.
@@ -25,7 +25,7 @@ FROM "User"
 GROUP BY LOWER(BTRIM("emailNormalized"))
 HAVING COUNT(*) > 1;
 ```
-The follow-up migration `20261016200000_casefold_workforce_emails` creates a case-insensitive unique index and an insert/update canonical-value check. It fails safely if older direct writes already created collisions. Do not auto-merge those users.
+The follow-up migration `20261016200000_casefold_workforce_emails` creates a case-insensitive unique index and an insert/update canonical-value check. Its direct Prisma mixed-case insert test passed GitHub CI 38918326189. It fails safely if older direct writes already created collisions. Do not auto-merge those users.
 
 Retain this report securely; it contains email identifiers. **Zero rows** are required for automatic cutover. Mixed users with orders or history need an approved separate workforce email, separately authorized membership transfer and audit; never move historical orders between users just to satisfy this migration.
 
@@ -62,4 +62,4 @@ New supplier/platform invitations will reserve a unique email as WORKFORCE and v
 
 ## Verified CI and remaining release gates
 
-GitHub CI run **38917521648** succeeded at commit `8f4d121d65403e903649fb7f5c651c1dd2b1eb6b`: backend unit 23/23, frontend files 27/27, HTTP/PostgreSQL integration 86/86 and all 18 migrations at that commit (the subsequent case-folded email index migration and updated regression are queued for their own CI verification). The runtime migration's mixed-account failure condition is implemented but production data was not scanned; operators must run the read-only query above on their staging/production copy **before** release. Supplier/team invitations, email sender, production workforce onboarding and separate head admin all remain Phases 2–3. The temporary `/auth/workforce/register` rejects production and must not be used as a substitute for verified invitation onboarding.
+GitHub CI run **38918326189** succeeded at commit `33298dddde3c3d2ba500c82ee68166a8629c4705`: backend unit 23/23, frontend files 27/27, HTTP/PostgreSQL integration 86/86 and all 19 migrations at that commit (the subsequent case-folded email index migration and updated regression are queued for their own CI verification). The runtime migration's mixed-account failure condition is implemented but production data was not scanned; operators must run the read-only query above on their staging/production copy **before** release. Supplier/team invitations, email sender, production workforce onboarding and separate head admin all remain Phases 2–3. The temporary `/auth/workforce/register` rejects production and must not be used as a substitute for verified invitation onboarding.
