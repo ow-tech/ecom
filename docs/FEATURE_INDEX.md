@@ -6,6 +6,12 @@ Status: PLANNED and indexed. Identity phases 1–3 are the first security depend
 
 Roadmap: [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md)
 
+## Transactional email — Brevo
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL (shared provider code for staff invitations, password resets and requested email notification attempts; live sender, delivery and CI not verified).
+
+Feature documentation: [brevo-transactional-email.md](features/brevo-transactional-email.md)
+
 ## Foundation
 
 Status: Implemented
