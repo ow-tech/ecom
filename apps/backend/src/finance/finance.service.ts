@@ -6,11 +6,12 @@ import { RbacService } from "../rbac/rbac.service";
 import { CreateCommissionRateDto, CreateSettlementDto, ManualAdjustmentDto, MarkSettlementPaidDto, SupplierLedgerListDto } from "./dto/finance.dto";
 import { OperationalOutboxService } from "../operations/operations.service";
 import { AuditService } from "../audit/audit.service";
+import { CommissionPolicyService } from "./commission-policy.service";
 import { PayoutDestinationsService } from "./payout-destinations.service";
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService, private readonly rbac: RbacService, private readonly outbox: OperationalOutboxService, private readonly audit: AuditService, private readonly payout: PayoutDestinationsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rbac: RbacService, private readonly outbox: OperationalOutboxService, private readonly audit: AuditService, private readonly payout: PayoutDestinationsService, private readonly policy: CommissionPolicyService) {}
   private notification(userId: string, type: string, title: string, settlementId: string, key: string) { return { recipientUserId: userId, type, category: "SETTLEMENT", title, body: `Settlement ${settlementId} was ${type.replace("SETTLEMENT_", "").toLowerCase()}.`, entityType: "SUPPLIER_SETTLEMENT", entityId: settlementId, dedupeKey: `notification:${key}` }; }
   private async settlementNotifications(tx: Prisma.TransactionClient, settlement: { id: string; supplierId: string }, type: "SETTLEMENT_CREATED" | "SETTLEMENT_APPROVED" | "SETTLEMENT_PAID") { const recipients = await this.outbox.supplierRecipientIds(tx, settlement.supplierId, ["finance.read"]); for (const userId of recipients) { const key = `settlement:${settlement.id}:${type.replace("SETTLEMENT_", "").toLowerCase()}:user:${userId}`; await this.outbox.enqueue(tx, { eventType: type, aggregateType: "SupplierSettlement", aggregateId: settlement.id, dedupeKey: key, userId, payload: this.notification(userId, type, type.replace("_", " "), settlement.id, key) }); } }
   private async supplier(userId: string, organizationId: string) { await this.rbac.organizationContext(userId, organizationId, "finance.read"); const supplier = await this.prisma.supplier.findUnique({ where: { organizationId } }); if (!supplier) throw new NotFoundException("Supplier not found"); return supplier; }
@@ -19,6 +20,14 @@ export class FinanceService {
   private settlementOutput<T extends { grossEarnings: Prisma.Decimal; refundAdjustments: Prisma.Decimal; otherAdjustments: Prisma.Decimal; netAmount: Prisma.Decimal; items?: Array<{ amount: Prisma.Decimal }> }>(row: T) { return { ...row, grossEarnings: row.grossEarnings.toFixed(2), refundAdjustments: row.refundAdjustments.toFixed(2), otherAdjustments: row.otherAdjustments.toFixed(2), netAmount: row.netAmount.toFixed(2), items: row.items?.map((item) => ({ ...item, amount: item.amount.toFixed(2) })) }; }
   private async balance(supplierId: string) { const rows = await this.prisma.supplierLedgerEntry.groupBy({ by: ["currencyCode"], where: { supplierId }, _sum: { amountSigned: true } }); return rows.map((row) => ({ currencyCode: row.currencyCode, balance: (row._sum.amountSigned ?? new Prisma.Decimal(0)).toFixed(2) })); }
 
+  defaultCommission(userId: string) { return this.policy.defaultView(userId); }
+  setDefaultCommission(userId: string, rate: string) { return this.policy.changeDefault(userId, rate); }
+  platformSupplierCommission(userId: string, supplierId: string) { return this.policy.supplierView(userId, supplierId); }
+  resetSupplierCommission(userId: string, supplierId: string) { return this.policy.resetSupplier(userId, supplierId); }
+  async supplierCommissionPolicy(userId: string, orgId: string) {
+    const supplier = await this.supplier(userId, orgId);
+    return this.policy.supplierView(userId, supplier.id, orgId);
+  }
   async supplierBalance(userId: string, organizationId: string) { const supplier = await this.supplier(userId, organizationId); return { supplierId: supplier.id, balances: await this.balance(supplier.id) }; }
   async supplierLedger(userId: string, organizationId: string, query: SupplierLedgerListDto) {
     const supplier = await this.supplier(userId, organizationId);

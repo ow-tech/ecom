@@ -1,15 +1,13 @@
 import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { Prisma, SupplierLedgerEntryType } from "@prisma/client";
+import { CommissionPolicyService } from "./commission-policy.service";
 
 @Injectable()
 export class FinancePostingService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly policy: CommissionPolicyService) {}
   async postCommissions(tx: Prisma.TransactionClient, supplierOrderId: string, earnedAt: Date) {
     const supplierOrder = await tx.supplierOrder.findUniqueOrThrow({ where: { id: supplierOrderId }, include: { items: true } });
-    const configured = new Prisma.Decimal(this.config.get<string>("DEFAULT_COMMISSION_RATE", "0.10"));
-    const rateRow = await tx.supplierCommissionRate.findFirst({ where: { supplierId: supplierOrder.supplierId, effectiveFrom: { lte: earnedAt }, OR: [{ effectiveTo: null }, { effectiveTo: { gt: earnedAt } }] }, orderBy: { effectiveFrom: "desc" } });
-    const rate = rateRow?.rate ?? configured;
+    const { rate } = await this.policy.effectiveAt(tx, supplierOrder.supplierId, earnedAt);
     if (rate.lte(0) || rate.gt(1)) throw new Error("Marketplace commission rate must be greater than zero and at most 100%");
     for (const item of supplierOrder.items) {
       const commissionAmount = item.lineTotal.mul(rate).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);

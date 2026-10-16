@@ -6,8 +6,9 @@ import { AuditModule } from "../audit/audit.module";
 import { SupplierFinanceController, PlatformFinanceController } from "./finance.controller";
 import { FinancePostingService } from "./finance-posting.service";
 import { FinanceService } from "./finance.service";
+import { CommissionPolicyService } from "./commission-policy.service";
 import { PayoutDestinationsService } from "./payout-destinations.service";
 import { SupplierPayoutController, PlatformPayoutController } from "./payout-destinations.controller";
 
-@Module({ imports: [AuthModule, RbacModule, OperationsModule, AuditModule], controllers: [SupplierFinanceController, PlatformFinanceController, SupplierPayoutController, PlatformPayoutController], providers: [FinanceService, FinancePostingService, PayoutDestinationsService], exports: [FinancePostingService] })
+@Module({ imports: [AuthModule, RbacModule, OperationsModule, AuditModule], controllers: [SupplierFinanceController, PlatformFinanceController, SupplierPayoutController, PlatformPayoutController], providers: [FinanceService, FinancePostingService, CommissionPolicyService, PayoutDestinationsService], exports: [FinancePostingService] })
 export class FinanceModule {}

@@ -1,6 +1,9 @@
 import { Transform, Type } from "class-transformer";
 import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from "class-validator";
 
+export class SetDefaultCommissionRateDto {
+  @Matches(/^(?:0\.(?!0{1,6}$)[0-9]{1,6}|1(?:\.0{1,6})?)$/) rate!: string;
+}
 export class CreateCommissionRateDto {
   @Matches(/^(?:0\.(?!0{1,6}$)[0-9]{1,6}|1(?:\.0{1,6})?)$/) rate!: string;
   @IsDateString() effectiveFrom!: string;

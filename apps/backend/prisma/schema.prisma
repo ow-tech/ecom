@@ -364,6 +364,7 @@ model User {
   approvedSettlements      SupplierSettlement[]         @relation("SettlementApprover")
   paidSettlements          SupplierSettlement[]         @relation("SettlementPaidBy")
   manualLedgerEntries      SupplierLedgerEntry[]        @relation("LedgerActor")
+  platformCommissionRates  PlatformCommissionRate[]
   notifications            Notification[]
   notificationPreferences  NotificationPreference[]
   requestedSupportTickets  SupportTicket[]              @relation("SupportRequester")
@@ -1267,6 +1268,16 @@ model WarrantyStatusHistory {
   actorUser       User?                @relation("WarrantyStatusActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([warrantyClaimId, createdAt])
+}
+
+model PlatformCommissionRate {
+  id              String   @id @default(uuid()) @db.Uuid
+  rate            Decimal  @db.Decimal(8, 6)
+  effectiveFrom   DateTime @unique
+  createdByUserId String   @db.Uuid
+  createdAt       DateTime @default(now())
+  createdBy       User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  @@index([effectiveFrom])
 }
 
 model SupplierCommissionRate {
