@@ -43,11 +43,11 @@ describe("staff invitations — live HTTP/PostgreSQL", () => {
   }
 
   beforeAll(async()=>{
-    for(const key of ["BREVO_API_KEY","STAFF_INVITATION_FROM_EMAIL","ACCOUNT_PUBLIC_URL"]){
+    for(const key of ["BREVO_API_KEY","BREVO_FROM_EMAIL","ACCOUNT_PUBLIC_URL"]){
       env[key]=process.env[key];
     }
     process.env.BREVO_API_KEY="test-key-not-sent";
-    process.env.STAFF_INVITATION_FROM_EMAIL="sender@example.test";
+    process.env.BREVO_FROM_EMAIL="sender@example.test";
     process.env.ACCOUNT_PUBLIC_URL="http://localhost:3100";
     const send=global.fetch;
     global.fetch=jest.fn(async (_input:string|URL|Request,opts?:RequestInit)=>{
