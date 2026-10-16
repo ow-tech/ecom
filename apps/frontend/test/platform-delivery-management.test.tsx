@@ -33,7 +33,7 @@ describe("platform pickup and delivery management", () => {
   it("creates a delivery zone through the protected API", async () => {
     fixture();
     render(<DeliveryManagement permissions={["platform.delivery.read", "platform.delivery.manage"]} />);
-    expect(await screen.findByText(/Nairobi Zone/)).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Create zone" })).toBeTruthy();
     await userEvent.type(screen.getByLabelText("Zone name"), "Kiambu East");
     await userEvent.click(screen.getByRole("button", { name: "Create zone" }));
     await waitFor(() => expect(api.createDeliveryZone).toHaveBeenCalledWith(expect.objectContaining({ name: "Kiambu East", countryCode: "KE" })));
@@ -53,7 +53,7 @@ describe("platform pickup and delivery management", () => {
     fixture();
     api.createDeliveryZone.mockRejectedValueOnce(new Error("Permission denied"));
     render(<DeliveryManagement permissions={["platform.delivery.read", "platform.delivery.manage"]} />);
-    await screen.findByText(/Nairobi Zone/);
+    await screen.findByRole("button", { name: "Create zone" });
     await userEvent.type(screen.getByLabelText("Zone name"), "Kiambu East");
     await userEvent.click(screen.getByRole("button", { name: "Create zone" }));
     expect(await screen.findByText("Permission denied")).toBeTruthy();

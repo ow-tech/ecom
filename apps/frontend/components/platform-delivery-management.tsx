@@ -78,7 +78,7 @@ export function DeliveryManagement({ permissions }: { permissions: string[] }) {
           <FormField label="Region / county"><Input name="region" required/></FormField>
           <FormField label="City / town"><Input name="city" required/></FormField>
           <FormField label="Address"><Input name="address" required/></FormField>
-          <FormField label="Collection fee"><Input name="pickupFee" inputMode="decimal" pattern="\\d+(\\.\\d{1,2})?" defaultValue="0.00" required/></FormField>
+          <FormField label="Collection fee"><Input name="pickupFee" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" defaultValue="0.00" required/></FormField>
           <div className="flex items-end"><Button type="submit" disabled={busy}>Create pickup point</Button></div>
         </form>}
       </Card>}
@@ -98,14 +98,14 @@ export function DeliveryManagement({ permissions }: { permissions: string[] }) {
           <FormField label="Zone"><Select name="deliveryZoneId" required><option value="">Select zone</option>{rows.zones.map(z => <option value={z.id} key={z.id}>{z.name}</option>)}</Select></FormField>
           <FormField label="Rate name"><Input name="name" required/></FormField>
           <FormField label="Currency"><Input name="currencyCode" defaultValue="KES" minLength={3} maxLength={3} required/></FormField>
-          <FormField label="Amount"><Input name="amount" inputMode="decimal" pattern="\\d+(\\.\\d{1,2})?" required/></FormField>
+          <FormField label="Amount"><Input name="amount" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required/></FormField>
           <div><Button type="submit" disabled={busy}>Create rate</Button></div>
         </form>}
       </Card>
       <Card><SectionHeader title="Manual delivery quotes" description="A customer must accept a current quote before Paystack initialization." />
         <div className="mt-4 space-y-3">{rows.quotes.map(q => <div key={q.id} className="flex flex-wrap justify-between gap-3 border-b border-border pb-3"><span className="text-sm">{q.order?.orderNumber ?? q.orderId} · {q.status} {q.amount && (q.currencyCode ? <Money currency={q.currencyCode} value={String(q.amount)} /> : <span className="tabular-nums">{String(q.amount)}</span>)}</span>{quoteManage && q.status === "PENDING" && <Button variant="outline" disabled={busy} onClick={() => setQuoteId(q.id)}>Provide quote</Button>}</div>)}</div>
         {quoteManage && quoteId && <form className="mt-5 grid gap-3 sm:grid-cols-3" onSubmit={saveQuote}>
-          <FormField label="Quoted amount"><Input name="amount" inputMode="decimal" pattern="\\d+(\\.\\d{1,2})?" required/></FormField>
+          <FormField label="Quoted amount"><Input name="amount" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required/></FormField>
           <FormField label="Reason"><Input name="reason"/></FormField>
           <FormField label="Valid until"><Input name="expiresAt" type="datetime-local"/></FormField>
           <Button type="submit" disabled={busy}>Save quote</Button><Button type="button" variant="outline" onClick={() => setQuoteId(undefined)}>Cancel</Button>
