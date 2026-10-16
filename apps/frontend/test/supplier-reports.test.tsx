@@ -31,7 +31,7 @@ describe("supplier reporting visibility", () => {
   it("does not display stale reports after a failed request", async () => {
     mocks.supplierReport.mockRejectedValueOnce(new Error("Try again"));
     render(<SupplierReports organizationId="org-a"/>);
-    expect(await screen.findByText(/Try again/)).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Try again" })).toBeTruthy();
     expect(screen.queryByText("Gross paid merchandise")).toBeNull();
   });
 });
