@@ -2,7 +2,7 @@
 
 **Master roadmap:** [../IMPLEMENTATION_ROADMAP.md](../IMPLEMENTATION_ROADMAP.md), Phases 1–3. This file remains the authoritative detailed implementation contract for those three security phases.
 
-**Status: PHASE 1 LOCAL_VERIFIED (CI 38917521648); RELEASE_GATED.** The exclusive account-audience enforcement now has a dedicated implementation note [account-audience-phase1.md](account-audience-phase1.md). Supplier email invitations and head-admin administration (Phases 2–3) are still NOT IMPLEMENTED.  This is a source-grounded implementation contract, not proof that these restrictions currently apply. Target: `ow-tech/ecom` `dev`. Implement in the dependency order below and complete backend/database, frontend, regression checks and documentation per vertical. No production data changes were made during planning.
+**Status: PHASE 1 LOCAL_VERIFIED; PHASES 2–3 PARTIAL ON DRAFT BRANCH, NOT RELEASE READY.** The exclusive account-audience enforcement now has a dedicated implementation note [account-audience-phase1.md](account-audience-phase1.md). A narrow supplier staff permission and bounded platform role definitions exist on draft branch `feature/supplier-staff-delegation-phase2`; invitation delivery, lifecycle management, platform staff APIs and UI are NOT IMPLEMENTED.  This is a source-grounded implementation contract, not proof that these restrictions currently apply. Target: `ow-tech/ecom` `dev`. Implement in the dependency order below and complete backend/database, frontend, regression checks and documentation per vertical. No production data changes were made during planning.
 
 ## Business requirements
 
@@ -68,3 +68,12 @@
 No automatic conversion of a customer's email into an administrator. No customer-commerce access on a staff email. No supplier access based only on a route parameter. No plaintext invitation token persistence. No head-admin permission to create or manage super admins. No implied external email delivery without a real provider. Existing supplier commissions, bank/M-Pesa manual payouts, payment settlement and customer-order histories must remain unchanged by this identity work.
 
 **Safe continuation:** Start with Feature 1 preflight/migration and protected `AuthService.register`, `CustomerService.ensureCustomerProfile`, `OrganizationsService.create`, `OrganizationMembersService.invite/accept` and platform-assignment safeguards. Preserve unique `User.emailNormalized` and existing RBAC invariants. Keep the index and this plan updated after each fully verified vertical.
+
+
+## October 16 implementation checkpoint (draft branch only)
+
+Phase 2: `organization.staff.manage` is seeded for supplier owner/admin and checked in the supplier staff mutation service and UI. `organization.members.manage` remains the owner-only payout mutation authority. Existing invitation still only targets registered WORKFORCE users and does not send email.
+
+Phase 3: seed defines `platform.head_admin`, `platform.operations_admin`, `platform.support_admin`, `platform.audit_viewer` and the distinct platform staff/head-admin permissions. Head admin receives subordinate staff management but not `platform.head_admin.manage`, which is assigned only to super admin. These are registry definitions **only**: no API, UI, bootstrap, dynamic grant/revoke, last-root safety, email onboarding, verified tests or production deployment. New roles must never be considered ready until those enforcement checks exist.
+
+Next safe implementation: transactional invitation database model, reserved-email collision protection, secure invitation delivery/acceptance and role management; then protected platform staff grant/revoke services with step-up and last-super-admin protections, APIs and UI. Reconcile seeded role permissions against existing databases before deploy; the existing upsert code adds permissions but does not remove obsolete grants. No production migration or mail delivery was performed.
