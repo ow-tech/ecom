@@ -55,6 +55,7 @@ export class PublicCatalogueService {
       description: listing.descriptionOverride ?? listing.product.description,
       brand: listing.product.brand,
       price: listing.price.toFixed(2),
+      origin: listing.origin, deliveryMinDays: listing.deliveryMinDays, deliveryMaxDays: listing.deliveryMaxDays,
       currencyCode: listing.currencyCode,
       availableQuantity: listing.inventoryItems.reduce((total, item) => total + item.onHand - item.reserved, 0),
       product: {
@@ -80,6 +81,7 @@ export class PublicCatalogueService {
       variantId: listing.productVariantId,
       variant: listing.productVariant ? { id: listing.productVariant.id, name: listing.productVariant.name, attributes: listing.productVariant.attributes } : null,
       availability: "IN_STOCK" as const,
+      origin: listing.origin, deliveryMinDays: listing.deliveryMinDays, deliveryMaxDays: listing.deliveryMaxDays,
       supplier: { slug: listing.supplier.slug, name: listing.supplier.displayName },
     };
   }
