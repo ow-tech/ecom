@@ -1,12 +1,17 @@
 "use client";
-import { FormEvent, Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "../../../../lib/api";
 import { Alert, Button, Card, FormField, Input } from "../../../../components/ui";
 
 function Activation() {
-  const token = useSearchParams().get("token") || "";
+  const [token, setToken] = useState("");
+  useEffect(() => {
+    const value = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token") || "";
+    setToken(value);
+    // Drop the capability from visible browser history after capturing it.
+    if (value) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, []);
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [newAccount, setNewAccount] = useState(true);
