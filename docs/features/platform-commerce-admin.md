@@ -70,3 +70,7 @@ and 1280px.
 ## After-sales operations client
 
 `/platform/aftersales` now renders a permission-aware platform client of canonical refund requests and Paystack refund evidence, return lifecycle commands, and warranty resolution. It exposes no manual mark-paid or inventory restock shortcut; see [platform-aftersales-operations.md](platform-aftersales-operations.md).
+
+## Catalogue editing extensions
+
+The existing `/platform/categories` and `/platform/products` now include permission-gated editing panels for category and product identity, variants, and URL media metadata. They call only platform PATCH controllers, not supplier offer/price or inventory APIs. See [platform-catalogue-editing.md](platform-catalogue-editing.md).

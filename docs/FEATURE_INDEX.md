@@ -231,6 +231,12 @@ Status: Implemented; live Nest HTTP/PostgreSQL verification complete. Browser re
 
 Feature documentation: [customer-support-ui.md](features/customer-support-ui.md)
 
+## Platform Catalogue Editing
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Permission-scoped edit forms for categories, products, variants, and media metadata reuse the existing platform PATCH endpoints. CI and browser proof pending.
+
+Feature documentation: [platform-catalogue-editing.md](features/platform-catalogue-editing.md)
+
 ## Platform After-Sales Lifecycle Controls
 
 Status: IMPLEMENTED_VERIFICATION_PARTIAL. Full permission-aware platform refund review/execution/reconciliation, return-state transitions and warranty-resolution UI using canonical backend services. Frontend and provider-browser verification pending.
