@@ -133,6 +133,10 @@ function publicProductQuery(query: { category?: string; search?: string; supplie
 export const api = {
   acceptStaffInvitation: (token: string, password?: string, displayName?: string) => request<{status: string; scope: string}>("/staff-invitations/accept", { method: "POST", body: JSON.stringify({token,password,displayName}) }),
   supplierStaffInvitations: (organizationId: string) => request<Array<{id: string; email: string; roleKey: string; status: string; emailedAt: string | null; expiresAt: string}>>(`/organizations/${encodeURIComponent(organizationId)}/staff-invitations`),
+  resendSupplierStaffInvitation: (organizationId: string, id: string) => request<{delivery:string}>(`/organizations/${encodeURIComponent(organizationId)}/staff-invitations/${encodeURIComponent(id)}/resend`, {method:"POST"}),
+  resendPlatformStaffInvitation: (id:string) => request<{delivery:string}>(`/platform/staff-invitations/${encodeURIComponent(id)}/resend`, {method:"POST"}),
+  platformStaff: () => request<Array<{id:string;email:string;displayName:string|null;status:string;roles:string[]}>>("/platform/staff"),
+  changePlatformStaffRole: (userId:string, roleKey:string, assign:boolean) => request<{assigned:boolean}>(`/platform/staff/${encodeURIComponent(userId)}/role`,{method:"PATCH",body:JSON.stringify({roleKey,assign})}),
   revokeSupplierStaffInvitation: (organizationId: string, id: string) => request<{status: string}>(`/organizations/${encodeURIComponent(organizationId)}/staff-invitations/${encodeURIComponent(id)}`, {method:"DELETE"}),
   platformStaffInvitations: () => request<Array<{id: string;email:string;roleKey:string;status:string;expiresAt:string}>>("/platform/staff-invitations"),
   invitePlatformStaff: (email: string, roleKey: string) => request<{id:string;status:string}>("/platform/staff-invitations", {method:"POST",body:JSON.stringify({email,roleKey})}),
