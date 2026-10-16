@@ -3,17 +3,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 const mocks = vi.hoisted(() => ({ api: {
-  platformSuppliers: vi.fn(), platformFinanceSettlements: vi.fn(), platformFinanceSupplierBalance: vi.fn(),
+  platformSuppliers: vi.fn(), platformFinanceSettlements: vi.fn(), platformFinanceSupplierBalance: vi.fn(), platformSupplierPayoutDestinations: vi.fn(), revealSupplierPayoutDestination: vi.fn(),
   createPlatformSettlement: vi.fn(), approvePlatformSettlement: vi.fn(), markPlatformSettlementPaid: vi.fn(),
 } }));
 vi.mock("../lib/api", () => ({ api: mocks.api }));
 import { PlatformFinanceManagement } from "../components/platform-finance-management";
 const draft = { id: "settlement-one", supplierId: "supplier-one", status: "DRAFT", currencyCode: "KES", netAmount: "500.00" };
-const approved = { ...draft, status: "APPROVED" };
+const approved = { ...draft, status: "APPROVED", payoutDestinationId: "bank-destination" };
+const bank = { id: "bank-destination", supplierId: "supplier-one", type: "BANK", currencyCode: "KES", bankName: "Example Bank", bankCountryCode: "KE", accountHolderName: "Supplier One", maskedLastFour: "5678", isActive: true };
 beforeEach(() => {
   mocks.api.platformSuppliers.mockResolvedValue({ data: [{ id: "supplier-one", displayName: "Supplier One" }] });
   mocks.api.platformFinanceSettlements.mockResolvedValue([draft]);
   mocks.api.platformFinanceSupplierBalance.mockResolvedValue({ supplierId: "supplier-one", balances: [{ currencyCode: "KES", balance: "500.00" }] });
+  mocks.api.platformSupplierPayoutDestinations.mockResolvedValue([bank]);
+  mocks.api.revealSupplierPayoutDestination.mockResolvedValue({ ...bank, accountNumber: "12345678", swiftBic: "ABCDEF12" });
   mocks.api.createPlatformSettlement.mockResolvedValue({ ...draft, id: "new" });
   mocks.api.approvePlatformSettlement.mockResolvedValue({ status: "APPROVED" });
   mocks.api.markPlatformSettlementPaid.mockResolvedValue({ status: "PAID" });
@@ -38,9 +41,25 @@ describe("platform financial settlement operations", () => {
     render(<PlatformFinanceManagement permissions={["platform.finance.read", "platform.settlements.manage"]}/>);
     await screen.findByText("Settlement history");
     await userEvent.selectOptions(screen.getByLabelText("Supplier"), "supplier-one");
+    expect(screen.getByRole("button", { name: "Create draft settlement" }).hasAttribute("disabled")).toBe(true);
+    await waitFor(() => expect(mocks.api.platformSupplierPayoutDestinations).toHaveBeenCalledWith("supplier-one"));
+    await userEvent.selectOptions(screen.getByLabelText("Payout destination"), "bank-destination");
     await userEvent.click(screen.getByRole("button", { name: "Create draft settlement" }));
-    await waitFor(() => expect(mocks.api.createPlatformSettlement).toHaveBeenCalledWith("supplier-one", "KES"));
-    expect(mocks.api.createPlatformSettlement.mock.calls[0]).toHaveLength(2);
+    await waitFor(() => expect(mocks.api.createPlatformSettlement).toHaveBeenCalledWith("supplier-one", "KES", "bank-destination"));
+    expect(mocks.api.createPlatformSettlement.mock.calls[0]).toHaveLength(3);
+  });
+  it("keeps full bank details hidden until the operator explicitly reveals them", async () => {
+    mocks.api.platformFinanceSettlements.mockResolvedValue([approved]);
+    render(<PlatformFinanceManagement permissions={["platform.finance.read", "platform.settlements.manage"]}/>);
+    await screen.findByText("Settlement history");
+    await userEvent.click(screen.getByRole("button", { name: "Record externally paid" }));
+    await waitFor(() => expect(mocks.api.platformSupplierPayoutDestinations).toHaveBeenCalledWith("supplier-one"));
+    expect(screen.queryByText(/12345678/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Reveal payout instructions" }));
+    expect(await screen.findByText(/12345678/)).toBeTruthy();
+    expect(mocks.api.revealSupplierPayoutDestination).toHaveBeenCalledWith("supplier-one", "bank-destination");
+    await userEvent.click(screen.getByRole("button", { name: "Hide payout instructions" }));
+    expect(screen.queryByText(/12345678/)).toBeNull();
   });
   it("requires external payment reference and user confirmation before paid acknowledgment", async () => {
     mocks.api.platformFinanceSettlements.mockResolvedValue([approved]);
