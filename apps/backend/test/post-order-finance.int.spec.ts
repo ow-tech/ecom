@@ -76,7 +76,7 @@ describe("post-order refund, return, warranty, commission, ledger, and settlemen
   }
   async function refund(f: Fixture, quantity = 1) { const created = await http("POST", `/customer/orders/${f.orderId}/refund-requests`, { reasonCode: "DAMAGED", items: [{ orderItemId: f.orderItemId, quantity }] }, f.customer.cookie); expect(created.status).toBe(201); const approved = await http("POST", `/platform/refund-requests/${created.body.id}/approve`, undefined, f.platform.cookie); expect(approved.status).toBe(201); return { requestId: created.body.id, refundId: approved.body.refund.id }; }
 
-  beforeAll(async () => { const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(PaystackClient).useValue(paystack).compile(); app = module.createNestApplication(); app.use(cookieParser()); app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })); await app.listen(0, "127.0.0.1"); baseUrl = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`; prisma = app.get(PrismaService); });
+  beforeAll(async () => { process.env.PAYOUT_DETAILS_ENCRYPTION_KEY ??= "5a20533079cff0167b183b1d81775cfe84de351d4a30b60da5b9936256af05d6"; const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(PaystackClient).useValue(paystack).compile(); app = module.createNestApplication(); app.use(cookieParser()); app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })); await app.listen(0, "127.0.0.1"); baseUrl = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`; prisma = app.get(PrismaService); });
   afterAll(async () => { if (prisma) { const users = await prisma.user.findMany({ where: { emailNormalized: { startsWith: prefix } }, select: { id: true } }); const userIds = users.map((x) => x.id); const profiles = await prisma.customerProfile.findMany({ where: { userId: { in: userIds } }, select: { id: true } }); const ids = profiles.map((x) => x.id); const orders = await prisma.order.findMany({ where: { customerProfileId: { in: ids } }, select: { id: true } }); const orderIds = orders.map((x) => x.id); const refunds = await prisma.refund.findMany({ where: { refundRequest: { orderId: { in: orderIds } } }, select: { id: true } }); const settlements = await prisma.supplierSettlement.findMany({ where: { supplier: { organization: { slug: { startsWith: prefix } } } }, select: { id: true } }); const notifications = await prisma.notification.findMany({ where: { recipientUserId: { in: userIds } }, select: { id: true } }); await prisma.notificationDeliveryAttempt.deleteMany({ where: { notificationId: { in: notifications.map((x) => x.id) } } }); await prisma.notification.deleteMany({ where: { recipientUserId: { in: userIds } } }); await prisma.notificationPreference.deleteMany({ where: { userId: { in: userIds } } }); await prisma.auditEvent.deleteMany({ where: { actorUserId: { in: userIds } } }); await prisma.supplierSettlementItem.deleteMany({ where: { settlementId: { in: settlements.map((x) => x.id) } } }); await prisma.supplierSettlement.deleteMany({ where: { id: { in: settlements.map((x) => x.id) } } }); await prisma.supplierPayoutDestination.deleteMany({ where: { supplier: { organization: { slug: { startsWith: prefix } } } } }); await prisma.supplierLedgerEntry.deleteMany({ where: { supplier: { organization: { slug: { startsWith: prefix } } } } }); await prisma.refundEvent.deleteMany({ where: { refundId: { in: refunds.map((x) => x.id) } } }); await prisma.refund.deleteMany({ where: { id: { in: refunds.map((x) => x.id) } } }); await prisma.refundRequestItem.deleteMany({ where: { refundRequest: { orderId: { in: orderIds } } } }); await prisma.refundRequest.deleteMany({ where: { orderId: { in: orderIds } } }); await prisma.returnStatusHistory.deleteMany({ where: { returnRequest: { orderId: { in: orderIds } } } }); await prisma.returnItem.deleteMany({ where: { returnRequest: { orderId: { in: orderIds } } } }); await prisma.returnRequest.deleteMany({ where: { orderId: { in: orderIds } } }); await prisma.warrantyStatusHistory.deleteMany({ where: { warrantyClaim: { orderItem: { orderId: { in: orderIds } } } } }); await prisma.warrantyClaim.deleteMany({ where: { orderItem: { orderId: { in: orderIds } } } }); await prisma.commissionRecord.deleteMany({ where: { orderItem: { orderId: { in: orderIds } } } }); await prisma.payment.deleteMany({ where: { orderId: { in: orderIds } } }); await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: orderIds } } }); await prisma.supplierOrderStatusHistory.deleteMany({ where: { supplierOrder: { orderId: { in: orderIds } } } }); await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } }); await prisma.supplierOrder.deleteMany({ where: { orderId: { in: orderIds } } }); await prisma.order.deleteMany({ where: { id: { in: orderIds } } }); await prisma.checkoutAttempt.deleteMany({ where: { customerProfileId: { in: ids } } }); await prisma.cart.deleteMany({ where: { customerProfileId: { in: ids } } }); await prisma.customerProfile.deleteMany({ where: { id: { in: ids } } }); await prisma.inventoryItem.deleteMany({ where: { supplierListing: { supplier: { organization: { slug: { startsWith: prefix } } } } } }); await prisma.inventoryLocation.deleteMany({ where: { supplier: { organization: { slug: { startsWith: prefix } } } } }); await prisma.supplierListing.deleteMany({ where: { supplier: { organization: { slug: { startsWith: prefix } } } } }); await prisma.supplierCommissionRate.deleteMany({ where: { supplier: { organization: { slug: { startsWith: prefix } } } } }); await prisma.organization.deleteMany({ where: { slug: { startsWith: prefix } } }); await prisma.user.deleteMany({ where: { id: { in: userIds } } }); await prisma.product.deleteMany({ where: { slug: { startsWith: prefix } } }); await prisma.category.deleteMany({ where: { slug: { startsWith: prefix } } }); } if (app) await app.close(); });
 
   it("derives and protects refund quantities, serializes final-unit races, and applies provider evidence once", async () => {
@@ -175,6 +175,54 @@ describe("post-order refund, return, warranty, commission, ledger, and settlemen
     expect(settlement.status).toBe("PAID"); expect(settlement.markedPaidByUserId).toBe(f.platform.id); expect(settlement.markedPaidAt).toBeTruthy();
     const balance = await prisma.supplierLedgerEntry.aggregate({ where: { supplierId: f.supplierId, currencyCode: "USD" }, _sum: { amountSigned: true } });
     expect(balance._sum.amountSigned!.toFixed(2)).toBe("0.00");
+  });
+
+  it("stores encrypted supplier bank and M-Pesa details and links manual settlements without extra commission debits", async () => {
+    const f = await fixture("manual-payout-destinations", 1);
+    const unrelated = await fixture("manual-payout-unrelated", 1);
+    const viewer = await platformWith("manual-payout-finance-viewer", ["platform.finance.read"]);
+    const url = `/organizations/${f.organizationId}/finance/payout-destinations`;
+    const bankDetails = { type: "BANK", currencyCode: "USD", accountHolderName: "Supplier Trading Ltd", bankName: "Example Commercial Bank", bankCountryCode: "KE", iban: "GB82WEST12345698765432", swiftBic: "ABCDEF12" };
+    expect((await http("POST", url, bankDetails, unrelated.owner.cookie)).status).toBe(403);
+    const bank = await http("POST", url, bankDetails, f.owner.cookie);
+    expect(bank.status).toBe(201);
+    expect(bank.body).toEqual(expect.objectContaining({ type: "BANK", currencyCode: "USD", maskedLastFour: "5432", accountHolderName: "Supplier Trading Ltd" }));
+    expect(JSON.stringify(bank.body)).not.toContain(bankDetails.iban);
+    expect(JSON.stringify(bank.body)).not.toContain(bankDetails.swiftBic);
+    const encrypted = await prisma.supplierPayoutDestination.findUniqueOrThrow({ where: { id: bank.body.id } });
+    expect(encrypted.encryptedDetails).toMatch(/^v1:/);
+    expect(encrypted.encryptedDetails).not.toContain(bankDetails.iban);
+    expect(encrypted.encryptedDetails).not.toContain(bankDetails.swiftBic);
+    expect((await http("GET", url, undefined, f.owner.cookie)).body).toEqual(expect.arrayContaining([expect.objectContaining({ id: bank.body.id, maskedLastFour: "5432" })]));
+    expect((await http("GET", url, undefined, unrelated.owner.cookie)).status).toBe(403);
+    const platformUrl = `/platform/finance/suppliers/${f.supplierId}/payout-destinations`;
+    expect((await http("GET", platformUrl, undefined, viewer.cookie)).status).toBe(200);
+    expect((await http("POST", `${platformUrl}/${bank.body.id}/reveal`, {}, viewer.cookie)).status).toBe(403);
+    const reveal = await http("POST", `${platformUrl}/${bank.body.id}/reveal`, {}, f.platform.cookie);
+    expect(reveal.body).toEqual(expect.objectContaining({ iban: bankDetails.iban, swiftBic: bankDetails.swiftBic }));
+    expect((await http("POST", url, { type: "MPESA", currencyCode: "USD", accountHolderName: "Example", mpesaPhone: "0712345678" }, f.owner.cookie)).status).toBe(400);
+    const mpesa = await http("POST", url, { type: "MPESA", currencyCode: "KES", accountHolderName: "Supplier Mobile", mpesaPhone: "0712345678" }, f.owner.cookie);
+    expect(mpesa.status).toBe(201);
+    expect(mpesa.body).toEqual(expect.objectContaining({ type: "MPESA", currencyCode: "KES", maskedLastFour: "5678" }));
+    const mpesaReveal = await http("POST", `${platformUrl}/${mpesa.body.id}/reveal`, {}, f.platform.cookie);
+    expect(mpesaReveal.body.mpesaPhone).toBe("+254712345678");
+    expect((await http("POST", url, { ...bankDetails, iban: "INVALID" }, f.owner.cookie)).status).toBe(400);
+
+    await prisma.supplierLedgerEntry.create({ data: { supplierId: f.supplierId, currencyCode: "USD", type: SupplierLedgerEntryType.SUPPLIER_EARNING, amountSigned: new Prisma.Decimal("90.00"), referenceType: "TEST", referenceId: `${prefix}-dest-net` } });
+    expect((await http("POST", `/platform/suppliers/${f.supplierId}/settlements`, { currencyCode: "USD", payoutDestinationId: mpesa.body.id }, f.platform.cookie)).status).toBe(400);
+    expect((await http("POST", `/platform/suppliers/${f.supplierId}/settlements`, { currencyCode: "USD", payoutDestinationId: "00000000-0000-0000-0000-000000000001" }, f.platform.cookie)).status).toBe(400);
+    const draft = await http("POST", `/platform/suppliers/${f.supplierId}/settlements`, { currencyCode: "USD", payoutDestinationId: bank.body.id }, f.platform.cookie);
+    expect(draft.status).toBe(201);
+    expect(draft.body).toEqual(expect.objectContaining({ netAmount: "90.00", payoutDestinationId: bank.body.id, status: "DRAFT" }));
+    expect((await http("DELETE", `${url}/${bank.body.id}`, undefined, f.owner.cookie)).status).toBe(200);
+    expect((await prisma.supplierSettlement.findUniqueOrThrow({ where: { id: draft.body.id } })).payoutDestinationId).toBe(bank.body.id);
+    expect((await http("POST", `/platform/settlements/${draft.body.id}/approve`, undefined, f.platform.cookie)).status).toBe(201);
+    expect((await http("POST", `/platform/settlements/${draft.body.id}/mark-paid`, { externalReference: "bank-manual-2026-1" }, f.platform.cookie)).status).toBe(201);
+    const afterPaid = await prisma.supplierLedgerEntry.findMany({ where: { supplierId: f.supplierId, type: SupplierLedgerEntryType.SETTLEMENT_DEBIT, referenceId: draft.body.id } });
+    expect(afterPaid).toHaveLength(1);
+    expect(afterPaid[0].amountSigned.toFixed(2)).toBe("-90.00");
+    expect((await http("POST", `/platform/settlements/${draft.body.id}/mark-paid`, { externalReference: "duplicate" }, f.platform.cookie)).body.idempotent).toBe(true);
+    expect(await prisma.supplierLedgerEntry.count({ where: { supplierId: f.supplierId, type: SupplierLedgerEntryType.SETTLEMENT_DEBIT, referenceId: draft.body.id } })).toBe(1);
   });
 
   it("enforces refund, finance, return, and warranty privacy at their HTTP boundaries", async () => {
