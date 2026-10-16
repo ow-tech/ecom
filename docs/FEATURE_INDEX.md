@@ -40,7 +40,7 @@ Phase 1 implementation: [account-audience-phase1.md](features/account-audience-p
 
 ## Overseas-shipped supplier listings
 
-Status: PARTIAL — origin/ETA data model, super-admin-only supplier capability, listing guards, checkout snapshots and public catalogue projection on dedicated draft branch. Overseas stock/capacity reservation and customer/supplier/admin UI remain incomplete.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL — super-admin supplier capability, orderable overseas capacity and owned reservation settlement/expiry/release, customer/supplier/admin UI and immutable order ETA snapshots implemented in draft PR #2. Schema migration, CI, full checkout/payment regressions and browser QA remain unverified.
 
 Feature documentation: [overseas-shipped-listings.md](features/overseas-shipped-listings.md)
 
