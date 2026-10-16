@@ -181,6 +181,12 @@ Supplier-facing visibility UI is implemented at the existing Supplier Workspace
 seam; focused UI and browser verification remain pending. See
 [supplier-business-management-ui.md](features/supplier-business-management-ui.md).
 
+## Operational worker crash recovery
+
+Status: IMPLEMENTED_VERIFICATION_PENDING. PostgreSQL lease-based reclaim and generation fencing protect crashed or stale outbox claims; focused HTTP/PostgreSQL regression added. Deployment scheduler, actual EMAIL/SMS providers, customer notification UI and release browser evidence remain outstanding.
+
+Feature documentation: [operational-outbox-notifications.md](features/operational-outbox-notifications.md)
+
 ## Operational Outbox + Notifications + Support + Audit
 
 Status: Implemented foundation; a fresh PostgreSQL 16 migration/seed-twice run

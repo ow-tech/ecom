@@ -33,6 +33,61 @@ describe("Operations layer integration", () => {
 
     const failing = await enqueue("retry", user.id); await prisma.operationalOutboxEvent.update({ where: { id: failing.id }, data: { availableAt: new Date(0) } }); const spy = jest.spyOn(delivery, "handleOutboxEvent").mockRejectedValueOnce(new Error("deterministic failure")); await processor.processBatch(`${prefix}-failure`, 1); spy.mockRestore(); const afterFailure = await prisma.operationalOutboxEvent.findUniqueOrThrow({ where: { id: failing.id } }); expect(afterFailure).toEqual(expect.objectContaining({ status: "PENDING", attemptCount: 1, lastErrorCode: "HANDLER_FAILED", lastErrorMessage: "deterministic failure" })); await prisma.operationalOutboxEvent.update({ where: { id: failing.id }, data: { availableAt: new Date(0) } }); await processor.processBatch(`${prefix}-retry`, 1); expect(await prisma.operationalOutboxEvent.findUniqueOrThrow({ where: { id: failing.id } })).toEqual(expect.objectContaining({ status: "PROCESSED", attemptCount: 2, processedAt: expect.any(Date) })); });
 
+  it("recovers a crashed worker claim and deduplicates its notification", async () => {
+    const user = await account("crashed-claim");
+    const event = await enqueue("crashed-claim", user.id);
+    await prisma.operationalOutboxEvent.update({ where: { id: event.id }, data: {
+      status: "PROCESSING", claimedAt: new Date(Date.now() - 60 * 60_000),
+      claimedBy: `${prefix}-dead-worker`, attemptCount: 1,
+    } });
+    await Promise.all([
+      processor.processBatch(`${prefix}-reclaim-a`, 1),
+      processor.processBatch(`${prefix}-reclaim-b`, 1),
+    ]);
+    const processed = await prisma.operationalOutboxEvent.findUniqueOrThrow({ where: { id: event.id } });
+    expect(processed).toEqual(expect.objectContaining({ status: "PROCESSED", attemptCount: 2, claimedBy: null }));
+    expect(await prisma.notification.count({ where: { dedupeKey: `${prefix}:notification:crashed-claim` } })).toBe(1);
+  });
+
+  it("rejects late completion by an old worker after a new claim", async () => {
+    const user = await account("stale-claim");
+    const event = await enqueue("stale-claim", user.id);
+    let releaseOld!: () => void;
+    let oldStarted!: () => void;
+    const started = new Promise<void>(resolve => { oldStarted = resolve; });
+    const waiting = new Promise<void>(resolve => { releaseOld = resolve; });
+    const original = delivery.handleOutboxEvent.bind(delivery);
+    const spy = jest.spyOn(delivery, "handleOutboxEvent").mockImplementationOnce(async () => {
+      oldStarted();
+      await waiting;
+      throw new Error("Old claimed worker was interrupted");
+    }).mockImplementation((type, payload) => original(type, payload));
+    try {
+      const oldRun = processor.processBatch(`${prefix}-old`, 1);
+      await started;
+      await prisma.operationalOutboxEvent.update({ where: { id: event.id }, data: { claimedAt: new Date(Date.now() - 60 * 60_000) } });
+      await processor.processBatch(`${prefix}-new`, 1);
+      releaseOld();
+      await oldRun;
+      expect(await prisma.operationalOutboxEvent.findUniqueOrThrow({ where: { id: event.id } }))
+        .toEqual(expect.objectContaining({ status: "PROCESSED", attemptCount: 2, lastErrorCode: null }));
+      expect(await prisma.notification.count({ where: { dedupeKey: `${prefix}:notification:stale-claim` } })).toBe(1);
+    } finally { releaseOld(); spy.mockRestore(); }
+  });
+
+  it("fails an abandoned exhausted claim without dispatching it again", async () => {
+    const user = await account("exhausted-claim");
+    const event = await enqueue("exhausted-claim", user.id);
+    await prisma.operationalOutboxEvent.update({ where: { id: event.id }, data: {
+      status: "PROCESSING", claimedAt: new Date(Date.now() - 60 * 60_000),
+      claimedBy: `${prefix}-dead`, attemptCount: 8,
+    } });
+    await processor.processBatch(`${prefix}-terminal`, 1);
+    expect(await prisma.operationalOutboxEvent.findUniqueOrThrow({ where: { id: event.id } }))
+      .toEqual(expect.objectContaining({ status: "FAILED", attemptCount: 8, lastErrorCode: "CLAIM_LEASE_EXPIRED", claimedBy: null }));
+    expect(await prisma.notification.count({ where: { dedupeKey: `${prefix}:notification:exhausted-claim` } })).toBe(0);
+  });
+
   it("keeps notifications recipient-owned, preference-aware, mandatory, and deduplicated under a race", async () => { const a = await account("notification-a"); const b = await account("notification-b"); const intent = { recipientUserId: a.id, type: "OPTIONAL", category: "TEST", title: "Optional", body: "body", dedupeKey: `${prefix}:direct-race`, entityType: "TEST", entityId: "direct" };
     await Promise.all([notifications.create(intent), notifications.create(intent)]); expect(await prisma.notification.count({ where: { dedupeKey: intent.dedupeKey } })).toBe(1);
     await notifications.updatePreferences(a.id, [{ category: "MARKETING", inAppEnabled: false }]); expect(await notifications.create({ ...intent, category: "MARKETING", dedupeKey: `${prefix}:optional-disabled` })).toBeNull(); await notifications.updatePreferences(a.id, [{ category: "PAYMENT", inAppEnabled: false }]); expect(await notifications.create({ ...intent, type: "PAYMENT_CONFIRMED", category: "PAYMENT", dedupeKey: `${prefix}:mandatory` })).toEqual(expect.objectContaining({ mandatory: true }));

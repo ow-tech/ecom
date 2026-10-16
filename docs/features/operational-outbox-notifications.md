@@ -24,3 +24,9 @@ Verification status: the focused HTTP/PostgreSQL fulfilment regression proves th
 | INV-OUT-04 | processor failure branch | failure then retry assertion |
 | INV-NOT-01/02/03 | `NotificationService` and controller | recipient HTTP isolation and concurrent dedupe |
 | INV-NOT-04 | immutable delivery attempts | in-app `AVAILABLE`, failed/retry/unconfigured external attempt proof |
+
+## Crash recovery and lease fencing (2026-10-16)
+
+`OperationalOutboxProcessor.processBatch` now reclaims `PROCESSING` rows with a stale `claimedAt` lease (default 300 seconds, configured by `OUTBOX_CLAIM_LEASE_SECONDS`). It marks exhausted abandoned claims `FAILED` with `CLAIM_LEASE_EXPIRED`, preserving audit/operations visibility. Eligible reclaims use PostgreSQL `FOR UPDATE SKIP LOCKED`. Completed/failure updates compare event ID, `claimedBy`, and attempt generation, so an old worker cannot overwrite status after its lease has been reclaimed. Existing `NotificationService.create` unique `dedupeKey` is the replay side-effect boundary.
+
+The focused real PostgreSQL suite verifies concurrent crashed-claim recovery, stale-worker completion/failure fencing, exactly one recipient-visible notice and terminal exhausted-lease failure. No new table or migration needed. A worker remains a one-shot bounded process: deployment must schedule it periodically and monitor long-running handlers. A lease longer than normal handler processing is recommended. This does not prove external email/SMS delivery; those remain NOT_CONFIGURED without adapters.
