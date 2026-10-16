@@ -176,6 +176,66 @@ describe("identity, tenancy, and RBAC integration", () => {
     expect((await http("GET", "/auth/me", undefined, disabled.cookie)).status).toBe(401);
   });
 
+  it("changes password only with old-secret proof and revokes every session", async () => {
+    const account = await register("security-change");
+    const second = await http("POST", "/auth/login", { email: account.email, password });
+    expect(second.status).toBe(201);
+    const secondCookie = sessionFrom(second).cookie;
+    expect((await http("POST", "/auth/password/change", { currentPassword: "invalid", newPassword: "AnotherVeryLongPassword!75" }, account.cookie)).status).toBe(401);
+    expect((await http("POST", "/auth/password/change", { currentPassword: password, newPassword: "AnotherVeryLongPassword!75" }, account.cookie)).status).toBe(201);
+    expect((await http("GET", "/auth/me", undefined, account.cookie)).status).toBe(401);
+    expect((await http("GET", "/auth/me", undefined, secondCookie)).status).toBe(401);
+    expect((await http("POST", "/auth/login", { email: account.email, password })).status).toBe(401);
+    expect((await http("POST", "/auth/login", { email: account.email, password: "AnotherVeryLongPassword!75" })).status).toBe(201);
+  });
+
+  it("uses hashed single-use recovery tokens and rejects replay after reset", async () => {
+    const account = await register("security-recovery");
+    const originalFetch = global.fetch;
+    const env = { api: process.env.RESEND_API_KEY, from: process.env.ACCOUNT_EMAIL_FROM, url: process.env.ACCOUNT_PUBLIC_URL };
+    const messages: string[] = [];
+    process.env.RESEND_API_KEY = "test-only";
+    process.env.ACCOUNT_EMAIL_FROM = "noreply@example.test";
+    process.env.ACCOUNT_PUBLIC_URL = "http://localhost:3100";
+    global.fetch = jest.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      messages.push(String(init?.body ?? ""));
+      return { ok: true, status: 200 } as Response;
+    }) as typeof fetch;
+    try {
+      const requested = await http("POST", "/auth/password/request-reset", { email: account.email });
+      expect(requested.status).toBe(201);
+      expect(requested.body).toEqual({ status: "accepted" });
+      expect(messages).toHaveLength(1);
+      const mail = JSON.parse(messages[0]) as { text: string };
+      const link = mail.text.match(/https?:\/\/[^\s]+/)?.[0];
+      expect(link).toBeDefined();
+      const token = new URL(link!).searchParams.get("token")!;
+      expect(token).toBeTruthy();
+      const saved = await prisma.passwordResetToken.findUniqueOrThrow({ where: { userId: account.id } });
+      expect(saved.tokenHash).not.toBe(token);
+      expect(saved.tokenHash).toHaveLength(64);
+      expect((await http("POST", "/auth/password/request-reset", { email: email("unknown-recovery") })).body).toEqual({ status: "accepted" });
+      expect(messages).toHaveLength(1);
+      expect((await http("POST", "/auth/password/reset", { token, newPassword: "NewVeryLongPasswordForRecovery!34" })).status).toBe(201);
+      expect((await http("POST", "/auth/password/reset", { token, newPassword: "YetAnotherStrongPassword!34" })).status).toBe(400);
+      expect((await http("GET", "/auth/me", undefined, account.cookie)).status).toBe(401);
+      expect((await http("POST", "/auth/login", { email: account.email, password: "NewVeryLongPasswordForRecovery!34" })).status).toBe(201);
+    } finally {
+      global.fetch = originalFetch;
+      if (env.api === undefined) delete process.env.RESEND_API_KEY; else process.env.RESEND_API_KEY = env.api;
+      if (env.from === undefined) delete process.env.ACCOUNT_EMAIL_FROM; else process.env.ACCOUNT_EMAIL_FROM = env.from;
+      if (env.url === undefined) delete process.env.ACCOUNT_PUBLIC_URL; else process.env.ACCOUNT_PUBLIC_URL = env.url;
+    }
+  });
+
+  it("throttles repeated invalid sign-ins across the same account and IP", async () => {
+    const account = await register("security-throttling");
+    for (let attempt = 0; attempt < 5; attempt++) {
+      expect((await http("POST", "/auth/login", { email: account.email, password: "invalid-password" })).status).toBe(401);
+    }
+    expect((await http("POST", "/auth/login", { email: account.email, password })).status).toBe(429);
+  });
+
   it("creates an active owner membership atomically, resolves owner permissions, and enforces unique slugs", async () => {
     const account = await register("owner");
     const created = await organization(account.cookie, "owner-org");
