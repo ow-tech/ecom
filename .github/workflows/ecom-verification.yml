@@ -1,0 +1,73 @@
+name: ECOM verification
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ecom_test
+          POSTGRES_USER: ecom
+          POSTGRES_PASSWORD: ecom_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ecom -d ecom_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://ecom:ecom_ci_only@127.0.0.1:5432/ecom_dev_not_used
+      TEST_DATABASE_URL: postgresql://ecom:ecom_ci_only@127.0.0.1:5432/ecom_test
+      REDIS_URL: redis://127.0.0.1:6379
+      BACKEND_PORT: "4001"
+      COLLECTION_CODE_SECRET: ecom-ci-only-collection-secret-never-for-production
+      SESSION_COOKIE_NAME: ecom_ci_session
+      PAYSTACK_ENVIRONMENT: test
+      PAYSTACK_SECRET_KEY: sk_test_integration_only
+      PAYSTACK_BASE_URL: http://127.0.0.1:9
+      PAYSTACK_MPESA_ENABLED: "false"
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:4001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.27.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma
+        run: pnpm prisma:generate
+      - name: Typecheck, lint, and build
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm build
+      - name: Unit and UI tests
+        run: |
+          pnpm --filter @ecom/backend test
+          pnpm --filter @ecom/frontend test
+      - name: Migrate and seed isolated integration database
+        run: |
+          DATABASE_URL="$TEST_DATABASE_URL" pnpm prisma:migrate:deploy
+          DATABASE_URL="$TEST_DATABASE_URL" pnpm --filter @ecom/backend prisma:seed
+      - name: Real HTTP/PostgreSQL integration suites
+        run: pnpm test:integration
