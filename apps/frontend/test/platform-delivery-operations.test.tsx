@@ -27,6 +27,23 @@ describe("permission-scoped platform delivery operations queue", () => {
     await userEvent.selectOptions(screen.getByLabelText("Order status"), "READY_FOR_PICKUP");
     await waitFor(() => expect(calls.operations).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, limit: 25, fulfillmentMethod: "PICKUP", status: "READY_FOR_PICKUP" })));
   });
+  it("ignores a delayed old-filter response when a newer filter has completed", async () => {
+    let resolveOld!: (value: any) => void;
+    const old = new Promise<any>(resolve => { resolveOld = resolve; });
+    const next = { ...row, id: "delivery-two", orderNumber: "EC-2002", status: "OUT_FOR_DELIVERY", fulfillmentMethod: "DELIVERY", pickupSnapshot: null, deliveryAddress: { city: "Nairobi", region: "Nairobi" } };
+    calls.operations.mockImplementation(({ fulfillmentMethod }: { fulfillmentMethod?: string }) =>
+      fulfillmentMethod === "DELIVERY"
+        ? Promise.resolve({ data: [next], total: 1, page: 1, limit: 25 })
+        : old);
+    render(<DeliveryOperations />);
+    await waitFor(() => expect(calls.operations).toHaveBeenCalledTimes(1));
+    await userEvent.selectOptions(screen.getByLabelText("Fulfilment method"), "DELIVERY");
+    expect(await screen.findByText("EC-2002")).toBeTruthy();
+    resolveOld({ data: [row], total: 1, page: 1, limit: 25 });
+    await waitFor(() => expect(calls.operations).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("EC-2002")).toBeTruthy();
+    expect(screen.queryByText("EC-1001")).toBeNull();
+  });
   it("offers a real retry on read failure without displaying stale records", async () => {
     calls.operations.mockRejectedValueOnce(new Error("Temporary outage")).mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 25 });
     render(<DeliveryOperations />);

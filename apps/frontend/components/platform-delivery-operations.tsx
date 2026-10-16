@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type DeliveryOperationsPage } from "../lib/api";
 import { Button, Card, EmptyState, ErrorState, Money, SectionHeader, Select, Skeleton, StatusBadge } from "./ui";
 
@@ -11,13 +11,18 @@ export function DeliveryOperations() {
   const [result, setResult] = useState<DeliveryOperationsPage>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
+  const requestSequence = useRef(0);
   const reload = useCallback(async () => {
-    setLoading(true); setError(undefined);
-    try { setResult(await api.platformDeliveryOperations({ page, limit: 25, ...(status ? { status } : {}), ...(method ? { fulfillmentMethod: method } : {}) })); }
-    catch (cause) { setResult(undefined); setError(cause instanceof Error ? cause.message : "Could not load delivery operations."); }
-    finally { setLoading(false); }
+    const sequence = ++requestSequence.current;
+    setLoading(true); setError(undefined); setResult(undefined);
+    try {
+      const response = await api.platformDeliveryOperations({ page, limit: 25, ...(status ? { status } : {}), ...(method ? { fulfillmentMethod: method } : {}) });
+      if (sequence === requestSequence.current) setResult(response);
+    } catch (cause) {
+      if (sequence === requestSequence.current) { setResult(undefined); setError(cause instanceof Error ? cause.message : "Could not load delivery operations."); }
+    } finally { if (sequence === requestSequence.current) setLoading(false); }
   }, [page, status, method]);
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => { void reload(); return () => { requestSequence.current += 1; }; }, [reload]);
 
   return <Card>
     <SectionHeader title="Delivery and pickup operations" description="Server-confirmed paid order progress. Supplier staff complete fulfilment in their own workspaces." actions={<Button type="button" variant="outline" disabled={loading} onClick={() => void reload()}>Refresh</Button>} />

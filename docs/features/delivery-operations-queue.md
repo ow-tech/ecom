@@ -27,3 +27,7 @@ No courier provider, driver assignment or live delivery GPS tracking is introduc
 
 ## Safe continuation
 Preserve `FulfilmentLifecycleService` and parent-state aggregator as the only transition authorities. Review the operational queue on authenticated mobile and desktop browsers. Next supplier vertical: staff invitation, membership permissions, and reporting.
+
+## Request-fencing correction (2026-10-16)
+
+`DeliveryOperations` now increments a request generation when filters, pagination or manual refresh change, and ignores prior responses/errors. Unmount also invalidates outstanding requests. The matching frontend regression deliberately resolves the old-filter request after the new result and asserts the newer supplier queue remains visible. This is a frontend consistency fix: canonical authorization and order state remain backend-owned.
