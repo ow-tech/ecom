@@ -38,7 +38,7 @@ describe("Operations layer integration", () => {
     const event = await enqueue("crashed-claim", user.id);
     await prisma.operationalOutboxEvent.update({ where: { id: event.id }, data: {
       status: "PROCESSING", claimedAt: new Date(Date.now() - 60 * 60_000),
-      claimedBy: `${prefix}-dead-worker`, attemptCount: 1,
+      claimedBy: `${prefix}-dead-worker`, attemptCount: 1, availableAt: new Date("1900-01-01T00:00:00.000Z"),
     } });
     await Promise.all([
       processor.processBatch(`${prefix}-reclaim-a`, 1),
@@ -52,6 +52,8 @@ describe("Operations layer integration", () => {
   it("rejects late completion by an old worker after a new claim", async () => {
     const user = await account("stale-claim");
     const event = await enqueue("stale-claim", user.id);
+    // Ensure this one-item worker claims our test fixture before unrelated outbox work.
+    await prisma.operationalOutboxEvent.update({ where: { id: event.id }, data: { availableAt: new Date("1900-01-01T00:00:00.000Z") } });
     let releaseOld!: () => void;
     let oldStarted!: () => void;
     const started = new Promise<void>(resolve => { oldStarted = resolve; });
