@@ -21,3 +21,7 @@ Status: IMPLEMENTED_VERIFICATION_PARTIAL until current `dev` CI and authenticate
 
 ## Safe continuation
 Keep financial report guards independent of nav visibility. Full accounting/expense features remain separate business modules. For additional trends, use canonical ledger and financial source-of-truth definitions before creating net-sales/profit visualizations.
+
+## Latest automated proof
+
+GitHub `dev` verification run [38893118508](https://github.com/ow-tech/ecom/actions/runs/38893118508) passed backend unit 23/23, frontend 22/22 test files and PostgreSQL HTTP integration 79/79 with fresh migrations. This is local integration proof only. Authenticated browser and external integrations remain separate release gates.

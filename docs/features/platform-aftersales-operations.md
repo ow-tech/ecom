@@ -17,3 +17,7 @@ UI `apps/frontend/components/platform-after-sales.tsx` → `apps/frontend/lib/ap
 
 ## Tests and safe continuation
 Run frontend after-sales interaction tests, backend post-order finance HTTP/PostgreSQL suite, and entire CI. Browser verify least-privilege roles, transitions, retries and real provider callback reconciliation. Customer after-sales entry remains the next exact UI seam.
+
+## Latest automated proof
+
+GitHub `dev` verification run [38893118508](https://github.com/ow-tech/ecom/actions/runs/38893118508) passed backend unit 23/23, frontend 22/22 test files and PostgreSQL HTTP integration 79/79 with fresh migrations. This is local integration proof only. Authenticated browser and external integrations remain separate release gates.

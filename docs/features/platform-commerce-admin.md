@@ -62,10 +62,7 @@ authorization, organization-user denial, pagination, filters, multi-supplier
 projection and private-field redaction. Vitest passed 13/13 interaction tests;
 backend/frontend typecheck, lint, and production builds passed. These checks do
 not prove browser journeys, the complete platform control matrix or live Paystack.
-The full backend regression is not green: the post-order finance suite exposed a
-`P2034` outbox conflict and a history-count mismatch. Safe continuation is to
-stabilize that independent regression, then run browser checks at 375px, 768px,
-and 1280px.
+The latest GitHub dev CI backend aggregate is green: 79/79 HTTP/PostgreSQL integration tests and 23/23 backend unit tests (run 38893118508). Historical outbox and history-count issues are no longer current blocking evidence. The remaining release continuation is authenticated responsive browsers at 375px, 768px and 1280px, external payment/refund evidence, and staging permissions.
 
 ## After-sales operations client
 

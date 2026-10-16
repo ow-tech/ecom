@@ -21,3 +21,7 @@ Frontend: `apps/frontend/test/customer-after-sales.test.tsx`; existing backend i
 
 ## Limitations and continuation
 New UI submits one order line per request. Multi-line refund/return DTOs already exist but bulk form UX is deferred. Physical return shipping, warehouse inspection evidence, external courier APIs and Paystack live refunds require separate operational integration and staging credentials. Responsive authenticated browser journeys must be tested before release.
+
+## Latest automated proof
+
+GitHub `dev` verification run [38893118508](https://github.com/ow-tech/ecom/actions/runs/38893118508) passed backend unit 23/23, frontend 22/22 test files and PostgreSQL HTTP integration 79/79 with fresh migrations. This is local integration proof only. Authenticated browser and external integrations remain separate release gates.

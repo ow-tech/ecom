@@ -34,7 +34,7 @@ Feature documentation: [supplier-domain.md](features/supplier-domain.md)
 
 ## Supplier Operational and Paid Merchandise Reporting
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL. Server-derived 30-day supplier order-status metrics and currency-separated gross paid merchandise, with separate order/finance RBAC gates. CI and authenticated browser verification pending.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Server-derived 30-day supplier order-status metrics and currency-separated gross paid merchandise, with separate order/finance RBAC gates. GitHub CI successful; authenticated browser and release verification pending.
 
 Feature documentation: [supplier-reporting.md](features/supplier-reporting.md)
 
@@ -221,7 +221,7 @@ external image delivery remain separate release verification.
 
 ## Customer After-Sales Requests
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL. Owned delivered-order UI integrates refunds, returns and warranty requests with the existing canonical backend and read-only status histories. Focused frontend and existing backend real HTTP/PostgreSQL tests; live browser/provider/physical logistics verification pending.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Owned delivered-order UI integrates refunds, returns and warranty requests with the existing canonical backend and read-only status histories. Frontend and backend HTTP/PostgreSQL CI successful; browser/provider/physical logistics verification pending.
 
 Feature documentation: [customer-aftersales-ui.md](features/customer-aftersales-ui.md)
 
@@ -233,25 +233,25 @@ Feature documentation: [customer-support-ui.md](features/customer-support-ui.md)
 
 ## Platform Audit Explorer
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL. The existing platform audit nav now opens an authenticated, permission-scoped, paginated/filtered read-only audit explorer. CI and responsive browser proof pending.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. The existing platform audit nav now opens an authenticated, permission-scoped, paginated/filtered read-only audit explorer. GitHub CI successful; responsive authenticated browser proof pending.
 
 Feature documentation: [platform-audit-explorer.md](features/platform-audit-explorer.md)
 
 ## Platform Finance and Manual Settlements
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL. Finance-read balances and settlement history; settlement-manage create/approve/manually acknowledge paid with required external reference and explicit confirmation. UI/HTTP CI and bank-evidence staging proof pending.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Finance-read balances and settlement history; settlement-manage create/approve/manually acknowledge paid with required external reference and explicit confirmation. GitHub CI successful; bank-evidence and staging browser proof pending.
 
 Feature documentation: [platform-finance-operations.md](features/platform-finance-operations.md)
 
 ## Platform Catalogue Editing
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL. Permission-scoped edit forms for categories, products, variants, and media metadata reuse the existing platform PATCH endpoints. CI and browser proof pending.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Permission-scoped edit forms for categories, products, variants, and media metadata reuse the existing platform PATCH endpoints. GitHub CI successful; authenticated browser proof pending.
 
 Feature documentation: [platform-catalogue-editing.md](features/platform-catalogue-editing.md)
 
 ## Platform After-Sales Lifecycle Controls
 
-Status: IMPLEMENTED_VERIFICATION_PARTIAL. Full permission-aware platform refund review/execution/reconciliation, return-state transitions and warranty-resolution UI using canonical backend services. Frontend and provider-browser verification pending.
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Full permission-aware platform refund review/execution/reconciliation, return-state transitions and warranty-resolution UI using canonical backend services. Frontend and PostgreSQL CI successful; live Paystack refund and browser proof pending.
 
 Feature documentation: [platform-aftersales-operations.md](features/platform-aftersales-operations.md)
 

@@ -10,9 +10,13 @@
 | Product media | RELEASE_VERIFICATION_REQUIRED | URL metadata projects safely in HTTP; fetch failure/fallback and host configuration remain unproven. `PRODUCT_MEDIA_BINARY_UPLOAD_NOT_IMPLEMENTED`. |
 | Cart/checkout/payment/fulfilment/tracking | RELEASE_VERIFICATION_REQUIRED | Canonical A–J fixture and authenticated local Chrome at 375/1280 prove server lifecycle/layout; hosted-redirect and safe rejected/unknown error UI use a controlled provider double. Live-provider/public-webhook proof remains. |
 | Pickup currency | RELEASE_VERIFICATION_REQUIRED | Nonzero pickup fees now have currency matching in preview/prepare; KES backfill assumptions for legacy points and staging multi-currency journeys need confirmation. |
+| Delivery operational queue | RELEASE_VERIFICATION_REQUIRED | Permission-scoped paid order/supplier progress UI and HTTP contracts CI-tested; courier integration, driver operations and browser validation remain. |
+| Supplier staff and reporting | RELEASE_VERIFICATION_REQUIRED | Owner-scoped in-app invitation/acceptance, delegated roles, revocation and finance-scoped reporting CI-tested; email invites, authenticated browser and staging roles remain. |
+| Platform catalogue/finance/audit | RELEASE_VERIFICATION_REQUIRED | Canonical PATCH editing, manually evidenced settlement controls and audit explorer CI-tested; actual bank transfer is not implemented and admin browser authorization matrix remains. |
+| After-sales end-to-end | RELEASE_VERIFICATION_REQUIRED | Customer refund/return/warranty submission and platform lifecycle UI CI-tested; physical logistics and live Paystack refund evidence not verified. |
 | Support privacy | RELEASE_VERIFICATION_REQUIRED | A–J fixture proves public reply/internal-note exclusion; browser proof remains. |
 | Tenant/platform isolation | RELEASE_VERIFICATION_REQUIRED | A–J and focused suites prove cross-supplier/customer denial; staging proof remains. |
-| Full backend regression | RELEASE_VERIFICATION_REQUIRED | 2026-10-12 fresh isolated aggregate: 10 suites/72 tests, exit 0, 48.44 seconds; retain it in CI. |
+| Automated application regression | LOCAL_VERIFIED | GitHub dev CI run 38893118508: backend unit 23/23, frontend 22/22 test files, HTTP/PostgreSQL integration 79/79, 14 migrations, typecheck/lint/build green. Release-browser and external provider proof remain separate. |
 | Production DB, backups and restore | LAUNCH_BLOCKER | No tested production backup/restore evidence. |
 | Deployment and TLS | LAUNCH_BLOCKER | Deployment/Nginx/TLS remain deferred. |
 | Git release integrity | RELEASE_VERIFICATION_REQUIRED | Direct commits to GitHub `dev` and GitHub Actions verification are available. Tagged production release, rollback and provenance process still pending. |

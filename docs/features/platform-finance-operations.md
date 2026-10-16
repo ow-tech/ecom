@@ -21,3 +21,7 @@ Platform finance operators can view currency-isolated supplier ledger balances a
 
 ## Safe continuation
 Never mark paid from a provider callback or without external evidence. Browser verify read-only finance roles, independent settlement management, balance currency groups, and replay behavior before release.
+
+## Latest automated proof
+
+GitHub `dev` verification run [38893118508](https://github.com/ow-tech/ecom/actions/runs/38893118508) passed backend unit 23/23, frontend 22/22 test files and PostgreSQL HTTP integration 79/79 with fresh migrations. This is local integration proof only. Authenticated browser and external integrations remain separate release gates.
