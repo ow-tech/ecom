@@ -88,6 +88,9 @@ export class StaffInvitationsService {
         select: { id: true, accountAudience: true, status: true } });
       if (existing && (existing.accountAudience !== AccountAudience.WORKFORCE || existing.status !== UserStatus.ACTIVE || existing.id === actorId))
         throw new ConflictException("Email is unavailable for staff invitation");
+      if (existing && scope === StaffInvitationScope.PLATFORM && await tx.platformRoleAssignment.findFirst({
+        where: { userId: existing.id, role: { key: "platform.super_admin" } },
+      })) throw new ForbiddenException("Protected platform identity cannot receive staff invitations");
       if (existing) {
         if (scope === StaffInvitationScope.SUPPLIER && await tx.organizationMembership.findUnique({
           where: { organizationId_userId: { organizationId: organizationId!, userId: existing.id } },
@@ -189,6 +192,8 @@ export class StaffInvitationsService {
         user = await tx.user.create({ data: { email: invitation.email, emailNormalized: invitation.emailNormalized,
           accountAudience: AccountAudience.WORKFORCE, emailVerifiedAt: new Date(), displayName } });
         await tx.credential.create({ data: { userId: user.id, passwordHash } });
+      } else if (!user.emailVerifiedAt) {
+        await tx.user.update({ where: { id: user.id }, data: { emailVerifiedAt: new Date() } });
       }
       if (invitation.scope === StaffInvitationScope.SUPPLIER) {
         if (!invitation.organizationId) throw new ConflictException("Invalid invitation scope");
@@ -212,6 +217,10 @@ export class StaffInvitationsService {
         await tx.membershipRole.deleteMany({ where: { membershipId: membership.id } });
         await tx.membershipRole.create({ data: { membershipId: membership.id, roleId } });
       } else {
+        const protectedRoot = await tx.platformRoleAssignment.findFirst({ where: {
+          userId: user.id, role: { key: "platform.super_admin" },
+        } });
+        if (protectedRoot) throw new ForbiddenException("Protected platform identity cannot accept staff invitations");
         await this.manager(tx, invitation.invitedByUserId, invitation.scope);
         const roleId = await this.allowed(tx, invitation.invitedByUserId, invitation.scope, invitation.roleKey);
         await tx.platformRoleAssignment.upsert({ where: { userId_roleId: { userId: user.id, roleId } },
