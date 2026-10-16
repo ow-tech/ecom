@@ -1,3 +1,4 @@
+import { OverseasSupplierCapabilityService } from "./overseas-supplier-capability.service";
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { PlatformSuppliersController } from "./platform-suppliers.controller";
@@ -8,5 +9,5 @@ import { SupplierReportsController } from "./supplier-reports.controller";
 import { SupplierReportsService } from "./supplier-reports.service";
 import { AuditModule } from "../audit/audit.module";
 
-@Module({ imports: [AuthModule, AuditModule], controllers: [SuppliersController, PlatformSuppliersController, SupplierReportsController], providers: [SuppliersService, SupplierLifecycleService, SupplierReportsService] })
+@Module({ imports: [AuthModule, AuditModule], controllers: [SuppliersController, PlatformSuppliersController, SupplierReportsController], providers: [SuppliersService, SupplierLifecycleService, SupplierReportsService, OverseasSupplierCapabilityService] })
 export class SuppliersModule {}
