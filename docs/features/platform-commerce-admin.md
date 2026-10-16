@@ -78,3 +78,7 @@ The existing `/platform/categories` and `/platform/products` now include permiss
 ## Platform financial management
 
 `/platform/finance` consumes the existing supplier financial balance and settlement APIs. It exposes server-derived draft settlement creation, approval and manually evidenced paid acknowledgment under their canonical permissions, without bank-transfer or automatic payout claims. See [platform-finance-operations.md](platform-finance-operations.md).
+
+## Audit access
+
+`/platform/audit` is wired to the existing `platform.audit.read`-protected append-only event projection; the platform workspace no longer falls through to the overview when users choose Audit. See [platform-audit-explorer.md](platform-audit-explorer.md).

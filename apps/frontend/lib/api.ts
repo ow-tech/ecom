@@ -35,6 +35,10 @@ export type CustomerProfile = { id: string; userId: string; firstName: string | 
 export type CustomerAddress = { id: string; label: string | null; recipientName: string; phone: string; alternativePhone: string | null; countryCode: string; region: string; city: string; estate: string | null; street: string | null; building: string | null; houseNumber: string | null; landmark: string | null; deliveryNotes: string | null; isDefault: boolean };
 export type AddressInput = Pick<CustomerAddress, "recipientName" | "phone" | "countryCode" | "region" | "city"> & Partial<Omit<CustomerAddress, "id" | "recipientName" | "phone" | "countryCode" | "region" | "city">>;
 export type AddressUpdate = Partial<AddressInput>;
+export type PlatformAuditPage = {
+  items: Array<{ id: string; actorUserId: string | null; actorType: string; action: string; entityType: string; entityId: string | null; createdAt: string; metadata: Record<string, unknown> }>;
+  total: number; page: number; limit: number;
+};
 export type PlatformSettlement = { id: string; supplierId: string; status: "DRAFT" | "APPROVED" | "PAID" | string; currencyCode: string; netAmount: string; createdAt: string; externalReference?: string | null };
 export type DeliveryOperationsPage = {
   data: Array<{ id: string; orderNumber: string; status: string; paymentStatus: "PAID"; fulfillmentMethod: "DELIVERY" | "PICKUP"; currencyCode: string; total: string; createdAt: string; updatedAt: string; pickupSnapshot: { name: string; city: string } | null; deliveryAddress: { region: string; city: string } | null; supplierOrders: Array<{ id: string; status: string; supplier: { displayName: string } }> }>;
@@ -196,6 +200,13 @@ export const api = {
   createSupportTicket: (input: { category: SupportCategory; subject: string; message: string; relatedEntityType?: string; relatedEntityId?: string }) => request<CustomerSupportTicket>("/customer/support/tickets", { method: "POST", body: JSON.stringify(input) }),
   replySupportTicket: (ticketId: string, body: string) => request<unknown>(`/customer/support/tickets/${encodeURIComponent(ticketId)}/messages`, { method: "POST", body: JSON.stringify({ body }) }),
   platformSummary: () => request<any>("/platform/operations/summary"),
+  platformAudit: (filters: { actor?: string; action?: string; entityType?: string; page?: number; limit?: number } = {}) => {
+    const query = new URLSearchParams({ page: String(filters.page ?? 1), limit: String(filters.limit ?? 25) });
+    if (filters.actor) query.set("actor", filters.actor);
+    if (filters.action) query.set("action", filters.action);
+    if (filters.entityType) query.set("entityType", filters.entityType);
+    return request<PlatformAuditPage>(`/platform/audit?${query.toString()}`);
+  },
   platformQueue: (queue: string) => request<any>(`/platform/operations/${encodeURIComponent(queue)}?limit=100`),
   platformSuppliers: (query: { status?: string; search?: string } = {}) => request<any>(`/platform/suppliers?${new URLSearchParams({ limit: "100", ...(query.status ? { status: query.status } : {}), ...(query.search ? { search: query.search } : {}) })}`),
   platformSupplierAction: (id: string, action: "approve" | "reject" | "suspend" | "reactivate", reason?: string) => request<any>(`/platform/suppliers/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify(reason ? { reason } : {}) }),

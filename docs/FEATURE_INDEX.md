@@ -231,6 +231,12 @@ Status: Implemented; live Nest HTTP/PostgreSQL verification complete. Browser re
 
 Feature documentation: [customer-support-ui.md](features/customer-support-ui.md)
 
+## Platform Audit Explorer
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. The existing platform audit nav now opens an authenticated, permission-scoped, paginated/filtered read-only audit explorer. CI and responsive browser proof pending.
+
+Feature documentation: [platform-audit-explorer.md](features/platform-audit-explorer.md)
+
 ## Platform Finance and Manual Settlements
 
 Status: IMPLEMENTED_VERIFICATION_PARTIAL. Finance-read balances and settlement history; settlement-manage create/approve/manually acknowledge paid with required external reference and explicit confirmation. UI/HTTP CI and bank-evidence staging proof pending.
