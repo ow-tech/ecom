@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { SessionAuthGuard } from "../auth/auth.guard"; import { CurrentUser } from "../auth/current-user.decorator"; import { AuthenticatedUser } from "../auth/auth.types";
+import { DeliveryOperationsQueryDto } from "./dto/delivery-operations.dto";
 import { DeliveryService } from "./delivery.service"; import { CreateDeliveryRateDto, CreateDeliveryZoneDto, QuoteDeliveryDto, UpdateDeliveryRateDto, UpdateDeliveryZoneDto } from "./dto/delivery.dto";
 @UseGuards(SessionAuthGuard) @Controller("platform/delivery") export class PlatformDeliveryController {
   constructor(private readonly service: DeliveryService) {}
   @Get("zones") zones(@CurrentUser() user: AuthenticatedUser) { return this.service.zones(user.id); } @Post("zones") createZone(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateDeliveryZoneDto) { return this.service.createZone(user.id, dto); } @Patch("zones/:zoneId") updateZone(@CurrentUser() user: AuthenticatedUser, @Param("zoneId") id: string, @Body() dto: UpdateDeliveryZoneDto) { return this.service.updateZone(user.id, id, dto); }
   @Get("rates") rates(@CurrentUser() user: AuthenticatedUser) { return this.service.rates(user.id); } @Post("rates") createRate(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateDeliveryRateDto) { return this.service.createRate(user.id, dto); } @Patch("rates/:rateId") updateRate(@CurrentUser() user: AuthenticatedUser, @Param("rateId") id: string, @Body() dto: UpdateDeliveryRateDto) { return this.service.updateRate(user.id, id, dto); }
+  @Get("operations") operations(@CurrentUser() user: AuthenticatedUser, @Query() query: DeliveryOperationsQueryDto) { return this.service.operations(user.id, query); }
   @Get("quotes") quotes(@CurrentUser() user: AuthenticatedUser) { return this.service.quotes(user.id); } @Get("quotes/:quoteId") quote(@CurrentUser() user: AuthenticatedUser, @Param("quoteId") id: string) { return this.service.quoteDetail(user.id, id); } @Post("quotes/:quoteId/quote") setQuote(@CurrentUser() user: AuthenticatedUser, @Param("quoteId") id: string, @Body() dto: QuoteDeliveryDto) { return this.service.quote(user.id, id, dto); }
 }
 @UseGuards(SessionAuthGuard) @Controller("customer/orders") export class CustomerDeliveryController { constructor(private readonly service: DeliveryService) {} @Post(":orderId/delivery-quote/approve") approve(@CurrentUser() user: AuthenticatedUser, @Param("orderId") id: string) { return this.service.approve(user.id, id); } }

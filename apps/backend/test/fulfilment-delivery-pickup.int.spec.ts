@@ -37,13 +37,29 @@ describe("fulfilment delivery pickup and tracking integration", () => {
     expect(mismatchPrepare.status).toBe(409);
     const checkout=await http("POST","/customer/checkout/prepare",{fulfillmentMethod:"PICKUP",pickupPointId:created.body.id},customer.cookie,{"idempotency-key":"pickup-key"}); expect(checkout.status).toBe(201); expect(checkout.body).toEqual(expect.objectContaining({pickupFee:"2.50",total:"12.50",collectionCode:expect.stringMatching(/^\d{8}$/)}));
     const persisted=await prisma.order.findUniqueOrThrow({where:{id:checkout.body.orderId},include:{pickupSnapshot:true}}); expect(persisted.pickupSnapshot).toEqual(expect.objectContaining({name:"Central Pickup",pickupFee:new Prisma.Decimal("2.50")})); expect(persisted.collectionCodeHash).not.toBe(checkout.body.collectionCode);
+    expect((await http("GET","/platform/delivery/operations?limit=5",undefined,outsider.cookie)).status).toBe(403);
     const [supplierOrder]=await confirm(persisted.id);
+    const operations=await http("GET","/platform/delivery/operations?fulfillmentMethod=PICKUP&status=PAYMENT_CONFIRMED&limit=5",undefined,owner.cookie);
+    expect(operations.status).toBe(200);
+    expect(operations.body.total).toBeGreaterThanOrEqual(1);
+    expect(operations.body.data).toEqual(expect.arrayContaining([expect.objectContaining({
+      id: persisted.id, fulfillmentMethod: "PICKUP", status: "PAYMENT_CONFIRMED",
+      supplierOrders: expect.arrayContaining([expect.objectContaining({ id: supplierOrder.id, status: "CONFIRMED" })]),
+    })]));
+    const operational = operations.body.data.find((row: { id: string }) => row.id === persisted.id);
+    expect(JSON.stringify(operational)).not.toContain("collectionCode");
+    expect(JSON.stringify(operational)).not.toContain("customerProfileId");
+    expect(JSON.stringify(operational)).not.toContain("internalNote");
+    expect((await http("GET","/platform/delivery/operations?status=CANCELLED",undefined,owner.cookie)).status).toBe(400);
+    expect((await http("GET","/platform/delivery/operations?limit=101",undefined,owner.cookie)).status).toBe(400);
     const outsiderOrg=await http("POST","/organizations",{name:"Outsider org",slug:slug("outsider-org")},outsider.cookie); await prisma.supplier.create({data:{organizationId:outsiderOrg.body.id,displayName:"Outsider supplier",slug:slug("outsider-supplier"),status:"ACTIVE"}});
     expect((await http("GET",`/organizations/${outsiderOrg.body.id}/supplier-orders/${supplierOrder.id}`,undefined,outsider.cookie)).status).toBe(404); expect((await http("POST",`/organizations/${outsiderOrg.body.id}/supplier-orders/${supplierOrder.id}/start-preparing`,{},outsider.cookie)).status).toBe(404);
     const memberRole=await prisma.role.findUniqueOrThrow({where:{key:"organization.member"}}); const membership=await prisma.organizationMembership.create({data:{organizationId:stock.organizationId,userId:foreign.id,status:"ACTIVE"}}); await prisma.membershipRole.create({data:{membershipId:membership.id,roleId:memberRole.id}}); expect((await http("GET",`/organizations/${stock.organizationId}/supplier-orders`,undefined,foreign.cookie)).status).toBe(200); expect((await http("POST",`/organizations/${stock.organizationId}/supplier-orders/${supplierOrder.id}/start-preparing`,{},foreign.cookie)).status).toBe(403);
     expect((await http("POST",`/organizations/${stock.organizationId}/supplier-orders/${supplierOrder.id}/ready-for-dispatch`,{},owner.cookie)).status).toBe(409);
     expect((await http("POST",`/organizations/${stock.organizationId}/supplier-orders/${supplierOrder.id}/start-preparing`,{publicMessage:"Packing now",internalNote:"private bin 7"},owner.cookie)).status).toBe(201);
     expect((await http("POST",`/organizations/${stock.organizationId}/supplier-orders/${supplierOrder.id}/ready-for-pickup`,{publicMessage:"Ready at desk"},owner.cookie)).status).toBe(201); expect((await prisma.order.findUniqueOrThrow({where:{id:persisted.id}})).status).toBe("READY_FOR_PICKUP");
+    const ready=await http("GET","/platform/delivery/operations?status=READY_FOR_PICKUP&fulfillmentMethod=PICKUP",undefined,owner.cookie);
+    expect(ready.body.data.some((row: { id: string }) => row.id === persisted.id)).toBe(true);
     expect(await prisma.operationalOutboxEvent.count({where:{dedupeKey:`order:${persisted.id}:ready_for_pickup`,aggregateType:"Order",aggregateId:persisted.id}})).toBe(1);
     expect((await http("POST",`/organizations/${stock.organizationId}/supplier-orders/${supplierOrder.id}/complete-pickup`,{collectionCode:"00000000"},owner.cookie)).status).toBe(409);
     const completions=await Promise.all([http("POST",`/organizations/${stock.organizationId}/supplier-orders/${supplierOrder.id}/complete-pickup`,{collectionCode:checkout.body.collectionCode},owner.cookie),http("POST",`/organizations/${stock.organizationId}/supplier-orders/${supplierOrder.id}/complete-pickup`,{collectionCode:checkout.body.collectionCode},owner.cookie)]); expect(completions.every((r)=>r.status===201)).toBe(true); expect(await prisma.supplierOrderStatusHistory.count({where:{supplierOrderId:supplierOrder.id,newStatus:"COMPLETED"}})).toBe(1); expect(await prisma.order.findUniqueOrThrow({where:{id:persisted.id}})).toEqual(expect.objectContaining({status:"DELIVERED",collectedAt:expect.any(Date)}));

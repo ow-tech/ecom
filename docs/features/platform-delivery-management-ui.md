@@ -41,3 +41,7 @@ Platform operations staff need to manage active pickup points, delivery zones/ra
 Execute fresh disposable PostgreSQL migration+seed, then the focused backend delivery/fulfilment suite and frontend Vitest/typecheck/lint/build. Browser-test role-protected create/edit/activate/deactivate point, zone and rate; customer point selection and quote re-rating; manual quote issuance/approval; secure pickup; and two-supplier delivery aggregation. Verify denied actions through direct HTTP requests, not merely hidden controls.
 
 Read this document and `docs/features/delivery-pickup.md` next. The canonical next seam is operational end-to-end verification, not a redesign of the underlying fulfilment service.
+
+## Cross-supplier delivery operations
+
+The platform delivery view also embeds a read-only paid-order operational queue through `DeliveryService.operations`. See [delivery-operations-queue.md](delivery-operations-queue.md). Supplier transitions remain canonical and supplier-scoped.

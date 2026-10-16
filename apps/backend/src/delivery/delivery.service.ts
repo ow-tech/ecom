@@ -5,12 +5,43 @@ import { CustomerService } from "../customer/customer.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 import { OperationalOutboxService } from "../operations/operations.service";
+import { DeliveryOperationsQueryDto, deliveryQueueStatuses } from "./dto/delivery-operations.dto";
 import { CreateDeliveryRateDto, CreateDeliveryZoneDto, QuoteDeliveryDto, UpdateDeliveryRateDto, UpdateDeliveryZoneDto } from "./dto/delivery.dto";
 
 @Injectable()
 export class DeliveryService {
   constructor(private readonly prisma: PrismaService, private readonly rbac: RbacService, private readonly customer: CustomerService, private readonly outbox: OperationalOutboxService) {}
   private rateOutput<T extends { amount: Prisma.Decimal }>(row: T) { return { ...row, amount: row.amount.toFixed(2) }; }
+  async operations(userId: string, query: DeliveryOperationsQueryDto) {
+    await this.rbac.requirePlatform(userId, "platform.delivery.read");
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 25;
+    const where: Prisma.OrderWhereInput = {
+      paymentStatus: OrderPaymentStatus.PAID,
+      status: query.status ? query.status : { in: [...deliveryQueueStatuses] },
+      ...(query.fulfillmentMethod ? { fulfillmentMethod: query.fulfillmentMethod } : {}),
+    };
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where, skip: (page - 1) * limit, take: limit,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        // INV-DELIVERY-OPS-01: No customer identifiers, raw address, collection code or internal notes.
+        select: {
+          id: true, orderNumber: true, status: true, paymentStatus: true,
+          fulfillmentMethod: true, currencyCode: true, total: true, createdAt: true, updatedAt: true,
+          pickupSnapshot: { select: { name: true, city: true } },
+          deliveryAddress: { select: { region: true, city: true } },
+          supplierOrders: {
+            orderBy: { id: "asc" },
+            select: { id: true, status: true, supplier: { select: { displayName: true } } },
+          },
+        },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+    return { data: rows.map(({ total: amount, ...row }) => ({ ...row, total: amount.toFixed(2) })), total, page, limit };
+  }
+
   async zones(userId: string) { await this.rbac.requirePlatform(userId, "platform.delivery.read"); return this.prisma.deliveryZone.findMany({ include: { rates: true }, orderBy: { createdAt: "asc" } }); }
   async createZone(userId: string, dto: CreateDeliveryZoneDto) { await this.rbac.requirePlatform(userId, "platform.delivery.manage"); return this.prisma.deliveryZone.create({ data: dto }); }
   async updateZone(userId: string, id: string, dto: UpdateDeliveryZoneDto) { await this.rbac.requirePlatform(userId, "platform.delivery.manage"); if (!await this.prisma.deliveryZone.findUnique({ where: { id } })) throw new NotFoundException("Delivery zone not found"); return this.prisma.deliveryZone.update({ where: { id }, data: dto }); }

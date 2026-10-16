@@ -23,6 +23,10 @@ export type CustomerProfile = { id: string; userId: string; firstName: string | 
 export type CustomerAddress = { id: string; label: string | null; recipientName: string; phone: string; alternativePhone: string | null; countryCode: string; region: string; city: string; estate: string | null; street: string | null; building: string | null; houseNumber: string | null; landmark: string | null; deliveryNotes: string | null; isDefault: boolean };
 export type AddressInput = Pick<CustomerAddress, "recipientName" | "phone" | "countryCode" | "region" | "city"> & Partial<Omit<CustomerAddress, "id" | "recipientName" | "phone" | "countryCode" | "region" | "city">>;
 export type AddressUpdate = Partial<AddressInput>;
+export type DeliveryOperationsPage = {
+  data: Array<{ id: string; orderNumber: string; status: string; paymentStatus: "PAID"; fulfillmentMethod: "DELIVERY" | "PICKUP"; currencyCode: string; total: string; createdAt: string; updatedAt: string; pickupSnapshot: { name: string; city: string } | null; deliveryAddress: { region: string; city: string } | null; supplierOrders: Array<{ id: string; status: string; supplier: { displayName: string } }> }>;
+  total: number; page: number; limit: number;
+};
 export type PickupPoint = { id: string; name: string; code: string; slug: string; countryCode: string; region: string; city: string; address: string; landmark: string | null; phone: string | null; pickupFee: string; currencyCode: string; storageLimitDays: number | null };
 export const checkoutFulfillmentMethod = { DELIVERY: "DELIVERY", PICKUP: "PICKUP" } as const;
 export type CheckoutFulfillmentMethod = typeof checkoutFulfillmentMethod[keyof typeof checkoutFulfillmentMethod];
@@ -188,6 +192,14 @@ export const api = {
   updateDeliveryRate: (id: string, input: Record<string, unknown>) => request<any>(`/platform/delivery/rates/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(input) }),
   platformDeliveryZones: () => request<any[]>("/platform/delivery/zones"),
   platformDeliveryRates: () => request<any[]>("/platform/delivery/rates"),
+  platformDeliveryOperations: (query: { page?: number; limit?: number; status?: string; fulfillmentMethod?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (query.page) params.set("page", String(query.page));
+    if (query.limit) params.set("limit", String(query.limit));
+    if (query.status) params.set("status", query.status);
+    if (query.fulfillmentMethod) params.set("fulfillmentMethod", query.fulfillmentMethod);
+    return request<DeliveryOperationsPage>(`/platform/delivery/operations?${params.toString()}`);
+  },
   platformDeliveryQuotes: () => request<any[]>("/platform/delivery/quotes"),
   setDeliveryQuote: (id: string, input: Record<string, unknown>) => request<any>(`/platform/delivery/quotes/${encodeURIComponent(id)}/quote`, { method: "POST", body: JSON.stringify(input) }),
   platformRefundRequests: () => request<any[]>("/platform/refund-requests"),

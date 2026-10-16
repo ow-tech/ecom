@@ -123,6 +123,12 @@ Status: Implemented and integration-verified
 
 Feature documentation: [delivery-pickup.md](features/delivery-pickup.md)
 
+## Platform Delivery Operations Queue
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Permission-scoped read-only paid delivery/pickup queue with per-supplier progress, bounded filtering, redaction and UI retries. CI/browser release proof pending.
+
+Feature documentation: [delivery-operations-queue.md](features/delivery-operations-queue.md)
+
 ## Platform Delivery and Pickup Administration
 
 Status: IMPLEMENTED_VERIFICATION_PARTIAL. Platform-authorized staff can create/update pickup points (with explicit fee currency), delivery zones and rates and issue manual delivery quotations through canonical APIs. Checkout preview and prepare reject mismatched nonzero pickup-fee currencies. Frontend tests have been committed; live browser and real database verification remain release gates.

@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { DeliveryOperations } from "./platform-delivery-operations";
 import { api } from "../lib/api";
 import { Alert, Button, Card, FormField, Input, Money, SectionHeader, Select, Skeleton, StatusBadge } from "./ui";
 
@@ -66,6 +67,7 @@ export function DeliveryManagement({ permissions }: { permissions: string[] }) {
     void run(() => api.setDeliveryQuote(quoteId, { amount: input.amount, reason: input.reason || undefined, expiresAt }), () => setQuoteId(undefined));
   }
   return <div className="mt-7 space-y-7">
+    <DeliveryOperations />
     {error && <Alert tone="error">{error}</Alert>}{notice && <Alert tone="success">{notice}</Alert>}
     {loading ? <Skeleton className="h-48" /> : <>
       {pickupRead && <Card><SectionHeader title="Pickup points" description="Only active locations are available during checkout. Fees are priced in the configured currency. Existing records were backfilled as KES." />
