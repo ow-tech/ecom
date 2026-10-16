@@ -35,6 +35,15 @@ idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LO
 - Delivery/pickup: platform admin can manage pickup points, zones/rates, manual quotations. `PickupPoint.currencyCode` explicitly governs nonzero pickup fees; checkout preview and prepare reject mismatched fee currency and frontend filters compatible points. The forward migration backfills historical points as KES; validate legacy pricing before staging/prod promotion.
 - GitHub `dev` CI workflow executes typecheck, lint, builds, unit/frontend tests, fresh PostgreSQL migrations/seed, and integration tests using synthetic provider configuration. Refer to the latest GitHub Actions run for current results; prior historical results are not proof of the newest revision.
 
+## Marketplace operations continuation — 2026-10-16
+
+- **Platform admin:** a permission-scoped, read-only `/platform/operations` background-job explorer now exposes sanitized outbox status, attempts and failure codes. Existing platform catalogue, finance, supplier, audit and support controls remain their canonical sources.
+- **After-sales:** admin refund/return/warranty views now fence stale data and report a post-action refresh as successful only after the canonical backend read succeeds. Real provider refunds, replacement/repair logistics and authenticated browser workflows remain separate release gates.
+- **Supplier settlements:** external manual-payment references are normalized, and whitespace-only references are rejected before paid marking or ledger debits. This is not a bank payout or automatic reconciliation integration; choose an external payout provider before implementing it.
+- **Notifications:** recipient-owned `/account/notifications` supports pagination, read/unread updates and optional in-app preferences. Email/SMS remain NOT_CONFIGURED without adapters/credentials and real delivery evidence.
+- **Background jobs:** outbox crash recovery uses lease expiration and stale-worker fencing; concurrent outbox writes use PostgreSQL-native `INSERT ... ON CONFLICT DO NOTHING` with authoritative winner lookup. Existing one-shot worker still needs deployment scheduling and monitoring.
+- **Verified CI:** [run 38897430108](https://github.com/ow-tech/ecom/actions/runs/38897430108) passed backend unit 23/23, frontend 24/24 test files, HTTP/PostgreSQL integration 82/82, 14 migrations, typecheck, lint and production builds. No real email/SMS, bank transfers or Paystack refund activity was performed.
+
 ## Current operational feature baseline — 2026-10-16
 
 Latest passing GitHub `dev` CI revision (before this documentation update): `05416ef25375f376f81cc337f49fa43fde5bb989`; [ECOM verification run](https://github.com/ow-tech/ecom/actions/runs/38893118508) passed backend unit 23/23, frontend test files 22/22, and real HTTP/PostgreSQL integration 79/79 using all 14 migrations. Lint, typecheck, builds, migrated DB seed and full integration checks passed. This is not live provider, browser/device or production deployment proof.

@@ -14,9 +14,11 @@
 | Supplier staff and reporting | RELEASE_VERIFICATION_REQUIRED | Owner-scoped in-app invitation/acceptance, delegated roles, revocation and finance-scoped reporting CI-tested; email invites, authenticated browser and staging roles remain. |
 | Platform catalogue/finance/audit | RELEASE_VERIFICATION_REQUIRED | Canonical PATCH editing, manually evidenced settlement controls and audit explorer CI-tested; actual bank transfer is not implemented and admin browser authorization matrix remains. |
 | After-sales end-to-end | RELEASE_VERIFICATION_REQUIRED | Customer refund/return/warranty submission and platform lifecycle UI CI-tested; physical logistics and live Paystack refund evidence not verified. |
+| Background jobs / notifications | RELEASE_VERIFICATION_REQUIRED | Crash-lease recovery, atomic dedupe, account notification center and permission-scoped platform outbox explorer are CI-verified. Scheduling, real EMAIL/SMS adapter delivery, browser verification and operational alerts remain. |
+| Supplier payout reconciliation | RELEASE_VERIFICATION_REQUIRED | Manual settlement approval/paid records and trimmed external-reference checks are CI-verified; no bank transfer or provider match evidence exists. |
 | Support privacy | RELEASE_VERIFICATION_REQUIRED | A–J fixture proves public reply/internal-note exclusion; browser proof remains. |
 | Tenant/platform isolation | RELEASE_VERIFICATION_REQUIRED | A–J and focused suites prove cross-supplier/customer denial; staging proof remains. |
-| Automated application regression | LOCAL_VERIFIED | GitHub dev CI run 38893118508: backend unit 23/23, frontend 22/22 test files, HTTP/PostgreSQL integration 79/79, 14 migrations, typecheck/lint/build green. Release-browser and external provider proof remain separate. |
+| Automated application regression | LOCAL_VERIFIED | GitHub dev CI run 38897430108: backend unit 23/23, frontend 24/24 test files, HTTP/PostgreSQL integration 82/82, 14 migrations, typecheck/lint/build green. Release-browser and provider proof remain separate. |
 | Production DB, backups and restore | LAUNCH_BLOCKER | No tested production backup/restore evidence. |
 | Deployment and TLS | LAUNCH_BLOCKER | Deployment/Nginx/TLS remain deferred. |
 | Git release integrity | RELEASE_VERIFICATION_REQUIRED | Direct commits to GitHub `dev` and GitHub Actions verification are available. Tagged production release, rollback and provenance process still pending. |

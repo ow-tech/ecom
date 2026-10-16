@@ -183,19 +183,19 @@ seam; focused UI and browser verification remain pending. See
 
 ## Customer notification inbox
 
-Status: IMPLEMENTED_VERIFICATION_PENDING. Account-owned notification listing, read/unread actions, in-app category preferences and frontend regressions are implemented over existing canonical Nest APIs; browser and full CI proof remain release checks. No external EMAIL/SMS provider is claimed.
+Status: LOCAL_VERIFIED. Account-owned inbox, read/unread actions, in-app category preferences and frontend regressions are implemented over canonical Nest APIs; GitHub CI run 38897430108 passed. Authenticated browser proof and external EMAIL/SMS providers remain release gates.
 
 Feature documentation: [operational-outbox-notifications.md](features/operational-outbox-notifications.md)
 
 ## Platform background jobs monitoring
 
-Status: IMPLEMENTED_VERIFICATION_PENDING. An operations-role-only outbox state/attempt/error viewer is integrated in the Platform Admin workspace using the canonical sanitized API. UI regression and GitHub CI pending; no manual job mutation controls or external delivery claims.
+Status: LOCAL_VERIFIED. An operations-role-only sanitized outbox state/attempt/error viewer is integrated in Platform Admin. UI and HTTP/PostgreSQL CI passed in run 38897430108; authenticated browser proof remains, and the UI never exposes arbitrary job mutation.
 
 Feature documentation: [platform-operations.md](features/platform-operations.md)
 
 ## Operational worker crash recovery
 
-Status: IMPLEMENTED_VERIFICATION_PENDING. PostgreSQL lease-based reclaim and generation fencing protect crashed or stale outbox claims; focused HTTP/PostgreSQL regression added. Deployment scheduler, actual EMAIL/SMS providers, customer notification UI and release browser evidence remain outstanding.
+Status: LOCAL_VERIFIED. PostgreSQL lease reclamation and generation fencing protect crashed/stale claims; atomic dedupe enqueues preserve first-write event intent. Focused crash/concurrency and notification regressions passed GitHub CI run 38897430108. Production scheduler, external EMAIL/SMS provider configuration and authenticated browser evidence remain outstanding.
 
 Feature documentation: [operational-outbox-notifications.md](features/operational-outbox-notifications.md)
 
