@@ -11,6 +11,13 @@ export type OrganizationStaff = {
 export type OrganizationStaffList = { members: OrganizationStaff[]; roles: Array<{ key: string; name: string }> };
 export type OrganizationInvitation = { id: string; organizationId: string; organizationName: string; roleKey: string | null };
 export type OrganizationContext = { id: string; name: string; slug: string; permissions: string[] };
+export type AccountNotification = {
+  id: string; type: string; category: string; title: string; body: string;
+  entityType: string | null; entityId: string | null; mandatory: boolean;
+  readAt: string | null; createdAt: string;
+};
+export type AccountNotificationsPage = { items: AccountNotification[]; page: number; limit: number; total: number };
+export type AccountNotificationPreference = { category: string; inAppEnabled: boolean; emailEnabled: boolean; smsEnabled: boolean };
 export type Session = { id: string; email: string; displayName: string | null; organizations: OrganizationContext[]; platformPermissions: string[] };
 export type CatalogueCategory = { id: string; name: string; slug: string; description: string | null; parentId: string | null };
 export type CatalogueItem = {
@@ -109,6 +116,13 @@ export const api = {
   login: (email: string, password: string) => request<unknown>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
   register: (email: string, password: string, displayName: string) => request<unknown>("/auth/register", { method: "POST", body: JSON.stringify({ email, password, displayName: displayName || undefined }) }),
   logout: () => request<unknown>("/auth/logout", { method: "POST" }),
+  accountNotifications: (page = 1, limit = 20) => request<AccountNotificationsPage>(`/notifications?page=${page}&limit=${limit}`),
+  unreadNotificationCount: () => request<{ count: number }>("/notifications/unread-count"),
+  markNotificationRead: (id: string) => request<{ id: string; read: boolean }>(`/notifications/${encodeURIComponent(id)}/read`, { method: "POST" }),
+  markAllNotificationsRead: () => request<{ count: number }>("/notifications/read-all", { method: "POST" }),
+  accountNotificationPreferences: () => request<AccountNotificationPreference[]>("/notification-preferences"),
+  updateNotificationPreferences: (categories: Array<{ category: string; inAppEnabled: boolean }>) =>
+    request<AccountNotificationPreference[]>("/notification-preferences", { method: "PATCH", body: JSON.stringify({ categories }) }),
   changePassword: (currentPassword: string, newPassword: string) => request<{ status: string }>("/auth/password/change", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }),
   requestPasswordReset: (email: string) => request<{ status: string }>("/auth/password/request-reset", { method: "POST", body: JSON.stringify({ email }) }),
   resetPassword: (token: string, newPassword: string) => request<{ status: string }>("/auth/password/reset", { method: "POST", body: JSON.stringify({ token, newPassword }) }),
