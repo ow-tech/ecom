@@ -97,8 +97,8 @@ Implemented source seams:
 Configuration (backend only; use secure secret manager in deployed environments):
 ```env
 BREVO_API_KEY=<from Brevo API key settings>
-STAFF_INVITATION_FROM_EMAIL=staff@your-verified-domain.example
-STAFF_INVITATION_FROM_NAME=Ecom
+BREVO_FROM_EMAIL=notifications@your-verified-domain.example
+BREVO_FROM_NAME=Ecom
 ACCOUNT_PUBLIC_URL=https://your-storefront-domain.example
 ```
 Verify sending domain SPF/DKIM in Brevo, ensure HTTPS application URL, and confirm the recipient inbox with a real test address. Never set keys in `NEXT_PUBLIC_*`, source control, logs or frontend configuration. No key/domain is configured by code and no actual emails have been sent by this work.
