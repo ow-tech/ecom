@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
-import { IsEmail, IsIn, IsString, IsUUID } from "class-validator";
+import { IsEmail, IsIn, IsString } from "class-validator";
 import { SessionAuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthenticatedUser } from "../auth/auth.types";
