@@ -18,6 +18,15 @@ WHERE EXISTS(SELECT 1 FROM "CustomerProfile" p WHERE p."userId"=u.id)
   AND (EXISTS(SELECT 1 FROM "OrganizationMembership" m WHERE m."userId"=u.id)
        OR EXISTS(SELECT 1 FROM "PlatformRoleAssignment" a WHERE a."userId"=u.id));
 ```
+Also check that no older direct database writes created equivalent normalized emails with different casing:
+```sql
+SELECT LOWER(BTRIM("emailNormalized")) AS normalized_email, COUNT(*) AS identities
+FROM "User"
+GROUP BY LOWER(BTRIM("emailNormalized"))
+HAVING COUNT(*) > 1;
+```
+The follow-up migration `20261016200000_casefold_workforce_emails` creates a case-insensitive unique index and an insert/update canonical-value check. It fails safely if older direct writes already created collisions. Do not auto-merge those users.
+
 Retain this report securely; it contains email identifiers. **Zero rows** are required for automatic cutover. Mixed users with orders or history need an approved separate workforce email, separately authorized membership transfer and audit; never move historical orders between users just to satisfy this migration.
 
 ## Invariants
@@ -53,4 +62,4 @@ New supplier/platform invitations will reserve a unique email as WORKFORCE and v
 
 ## Verified CI and remaining release gates
 
-GitHub CI run **38917521648** succeeded at commit `8f4d121d65403e903649fb7f5c651c1dd2b1eb6b`: backend unit 23/23, frontend files 27/27, HTTP/PostgreSQL integration 86/86 and all 18 migrations. The runtime migration's mixed-account failure condition is implemented but production data was not scanned; operators must run the read-only query above on their staging/production copy **before** release. Supplier/team invitations, email sender, production workforce onboarding and separate head admin all remain Phases 2–3. The temporary `/auth/workforce/register` rejects production and must not be used as a substitute for verified invitation onboarding.
+GitHub CI run **38917521648** succeeded at commit `8f4d121d65403e903649fb7f5c651c1dd2b1eb6b`: backend unit 23/23, frontend files 27/27, HTTP/PostgreSQL integration 86/86 and all 18 migrations at that commit (the subsequent case-folded email index migration and updated regression are queued for their own CI verification). The runtime migration's mixed-account failure condition is implemented but production data was not scanned; operators must run the read-only query above on their staging/production copy **before** release. Supplier/team invitations, email sender, production workforce onboarding and separate head admin all remain Phases 2–3. The temporary `/auth/workforce/register` rejects production and must not be used as a substitute for verified invitation onboarding.
