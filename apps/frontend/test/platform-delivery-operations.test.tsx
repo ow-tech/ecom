@@ -1,6 +1,6 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const calls = vi.hoisted(() => ({ operations: vi.fn() }));
@@ -31,7 +31,7 @@ describe("permission-scoped platform delivery operations queue", () => {
     calls.operations.mockRejectedValueOnce(new Error("Temporary outage")).mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 25 });
     render(<DeliveryOperations />);
     expect(await screen.findByText("Temporary outage")).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("No matching fulfilment work")).toBeTruthy();
   });
 });
