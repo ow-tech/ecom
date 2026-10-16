@@ -208,7 +208,16 @@ describe("post-order refund, return, warranty, commission, ledger, and settlemen
     expect(mpesaReveal.body.mpesaPhone).toBe("+254712345678");
     expect((await http("POST", url, { ...bankDetails, iban: "INVALID" }, f.owner.cookie)).status).toBe(400);
 
-    await prisma.supplierLedgerEntry.create({ data: { supplierId: f.supplierId, currencyCode: "USD", type: SupplierLedgerEntryType.SUPPLIER_EARNING, amountSigned: new Prisma.Decimal("90.00"), referenceType: "TEST", referenceId: `${prefix}-dest-net` } });
+    // Prove the real fulfilment commission seam, not an artificial pre-netted ledger insert.
+    await prisma.orderItem.update({ where: { id: f.orderItemId }, data: { unitPrice: new Prisma.Decimal("100.00"), lineTotal: new Prisma.Decimal("100.00") } });
+    await prisma.supplierOrder.update({ where: { id: f.supplierOrderId }, data: { subtotal: new Prisma.Decimal("100.00") } });
+    await prisma.order.update({ where: { id: f.orderId }, data: { subtotal: new Prisma.Decimal("100.00"), total: new Prisma.Decimal("100.00") } });
+    await prisma.payment.update({ where: { id: f.paymentId }, data: { amount: new Prisma.Decimal("100.00") } });
+    await prisma.$transaction(tx => app.get(FinancePostingService).postCommissions(tx, f.supplierOrderId, new Date()));
+    const commission = await prisma.commissionRecord.findUniqueOrThrow({ where: { orderItemId: f.orderItemId } });
+    expect(commission).toEqual(expect.objectContaining({ grossAmount: new Prisma.Decimal("100.00"), commissionAmount: new Prisma.Decimal("10.00"), supplierNetAmount: new Prisma.Decimal("90.00") }));
+    const earning = await prisma.supplierLedgerEntry.findFirstOrThrow({ where: { supplierId: f.supplierId, type: SupplierLedgerEntryType.SUPPLIER_EARNING, referenceId: commission.id } });
+    expect(earning.amountSigned.toFixed(2)).toBe("90.00");
     expect((await http("POST", `/platform/suppliers/${f.supplierId}/settlements`, { currencyCode: "USD", payoutDestinationId: mpesa.body.id }, f.platform.cookie)).status).toBe(400);
     expect((await http("POST", `/platform/suppliers/${f.supplierId}/settlements`, { currencyCode: "USD", payoutDestinationId: "00000000-0000-0000-0000-000000000001" }, f.platform.cookie)).status).toBe(400);
     const draft = await http("POST", `/platform/suppliers/${f.supplierId}/settlements`, { currencyCode: "USD", payoutDestinationId: bank.body.id }, f.platform.cookie);
