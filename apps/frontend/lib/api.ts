@@ -261,6 +261,7 @@ export const api = {
   },
   platformQueue: (queue: string) => request<any>(`/platform/operations/${encodeURIComponent(queue)}?limit=100`),
   platformSuppliers: (query: { status?: string; search?: string } = {}) => request<any>(`/platform/suppliers?${new URLSearchParams({ limit: "100", ...(query.status ? { status: query.status } : {}), ...(query.search ? { search: query.search } : {}) })}`),
+  setSupplierOverseasEnabled: (id: string, enabled: boolean) => request<{ supplierId: string; overseasEnabled: boolean }>(`/platform/suppliers/${encodeURIComponent(id)}/overseas-shipping`, { method: "PATCH", body: JSON.stringify({enabled}) }),
   platformSupplierAction: (id: string, action: "approve" | "reject" | "suspend" | "reactivate", reason?: string) => request<any>(`/platform/suppliers/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify(reason ? { reason } : {}) }),
   platformCategories: () => request<any[]>("/platform/categories"),
   createPlatformCategory: (input: Record<string, unknown>) => request<any>("/platform/categories", { method: "POST", body: JSON.stringify(input) }),
