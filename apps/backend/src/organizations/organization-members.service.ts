@@ -2,6 +2,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { AccountAudience, MembershipStatus, Prisma, RoleScope, UserStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
+import { AuditService } from "../audit/audit.service";
 
 export const STAFF_ROLE_KEYS = [
   "organization.admin", "organization.member", "organization.inventory_staff",
@@ -10,7 +11,7 @@ export const STAFF_ROLE_KEYS = [
 
 @Injectable()
 export class OrganizationMembersService {
-  constructor(private readonly prisma: PrismaService, private readonly rbac: RbacService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rbac: RbacService, private readonly audit: AuditService) {}
 
   private async managed(tx: Prisma.TransactionClient, actorId: string, organizationId: string) {
     // INV-STAFF-01: every owner mutation serializes on the organization and
@@ -102,6 +103,7 @@ export class OrganizationMembersService {
       if (member.userId === actorId || member.roles.some(r => r.role.key === "organization.owner")) throw new ForbiddenException("Cannot change owner or own role");
       await tx.membershipRole.deleteMany({ where: { membershipId } });
       await tx.membershipRole.create({ data: { membershipId, roleId: role.id } });
+      await this.audit.emitInTransaction(tx, { actorUserId: actorId, organizationId, action: "SUPPLIER_STAFF_ROLE_CHANGED", entityType: "ORGANIZATION_MEMBERSHIP", entityId: membershipId, metadata: { roleKey } });
       return { id: member.id, status: member.status, roleKey };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
@@ -114,8 +116,10 @@ export class OrganizationMembersService {
       if (!member) throw new NotFoundException("Staff membership not found");
       if (member.userId === actorId || member.roles.some(r => r.role.key === "organization.owner"))
         throw new ForbiddenException("Cannot remove owner or own membership");
-      if (member.status !== MembershipStatus.REMOVED)
+      if (member.status !== MembershipStatus.REMOVED) {
         await tx.organizationMembership.update({ where: { id: member.id }, data: { status: MembershipStatus.REMOVED } });
+        await this.audit.emitInTransaction(tx, { actorUserId: actorId, organizationId, action: "SUPPLIER_STAFF_REMOVED", entityType: "ORGANIZATION_MEMBERSHIP", entityId: membershipId, metadata: { previousStatus: member.status } });
+      }
       return { id: member.id, status: MembershipStatus.REMOVED };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
