@@ -74,3 +74,7 @@ and 1280px.
 ## Catalogue editing extensions
 
 The existing `/platform/categories` and `/platform/products` now include permission-gated editing panels for category and product identity, variants, and URL media metadata. They call only platform PATCH controllers, not supplier offer/price or inventory APIs. See [platform-catalogue-editing.md](platform-catalogue-editing.md).
+
+## Platform financial management
+
+`/platform/finance` consumes the existing supplier financial balance and settlement APIs. It exposes server-derived draft settlement creation, approval and manually evidenced paid acknowledgment under their canonical permissions, without bank-transfer or automatic payout claims. See [platform-finance-operations.md](platform-finance-operations.md).

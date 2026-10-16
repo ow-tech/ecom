@@ -231,6 +231,12 @@ Status: Implemented; live Nest HTTP/PostgreSQL verification complete. Browser re
 
 Feature documentation: [customer-support-ui.md](features/customer-support-ui.md)
 
+## Platform Finance and Manual Settlements
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Finance-read balances and settlement history; settlement-manage create/approve/manually acknowledge paid with required external reference and explicit confirmation. UI/HTTP CI and bank-evidence staging proof pending.
+
+Feature documentation: [platform-finance-operations.md](features/platform-finance-operations.md)
+
 ## Platform Catalogue Editing
 
 Status: IMPLEMENTED_VERIFICATION_PARTIAL. Permission-scoped edit forms for categories, products, variants, and media metadata reuse the existing platform PATCH endpoints. CI and browser proof pending.

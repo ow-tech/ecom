@@ -35,6 +35,7 @@ export type CustomerProfile = { id: string; userId: string; firstName: string | 
 export type CustomerAddress = { id: string; label: string | null; recipientName: string; phone: string; alternativePhone: string | null; countryCode: string; region: string; city: string; estate: string | null; street: string | null; building: string | null; houseNumber: string | null; landmark: string | null; deliveryNotes: string | null; isDefault: boolean };
 export type AddressInput = Pick<CustomerAddress, "recipientName" | "phone" | "countryCode" | "region" | "city"> & Partial<Omit<CustomerAddress, "id" | "recipientName" | "phone" | "countryCode" | "region" | "city">>;
 export type AddressUpdate = Partial<AddressInput>;
+export type PlatformSettlement = { id: string; supplierId: string; status: "DRAFT" | "APPROVED" | "PAID" | string; currencyCode: string; netAmount: string; createdAt: string; externalReference?: string | null };
 export type DeliveryOperationsPage = {
   data: Array<{ id: string; orderNumber: string; status: string; paymentStatus: "PAID"; fulfillmentMethod: "DELIVERY" | "PICKUP"; currencyCode: string; total: string; createdAt: string; updatedAt: string; pickupSnapshot: { name: string; city: string } | null; deliveryAddress: { region: string; city: string } | null; supplierOrders: Array<{ id: string; status: string; supplier: { displayName: string } }> }>;
   total: number; page: number; limit: number;
@@ -234,6 +235,11 @@ export const api = {
   },
   platformDeliveryQuotes: () => request<any[]>("/platform/delivery/quotes"),
   setDeliveryQuote: (id: string, input: Record<string, unknown>) => request<any>(`/platform/delivery/quotes/${encodeURIComponent(id)}/quote`, { method: "POST", body: JSON.stringify(input) }),
+  platformFinanceSettlements: () => request<PlatformSettlement[]>("/platform/settlements"),
+  platformFinanceSupplierBalance: (supplierId: string) => request<{ supplierId: string; balances: Array<{ currencyCode: string; balance: string }> }>(`/platform/finance/suppliers/${encodeURIComponent(supplierId)}/balance`),
+  createPlatformSettlement: (supplierId: string, currencyCode: string) => request<PlatformSettlement>(`/platform/suppliers/${encodeURIComponent(supplierId)}/settlements`, { method: "POST", body: JSON.stringify({ currencyCode }) }),
+  approvePlatformSettlement: (id: string) => request<unknown>(`/platform/settlements/${encodeURIComponent(id)}/approve`, { method: "POST" }),
+  markPlatformSettlementPaid: (id: string, externalReference: string, note?: string) => request<unknown>(`/platform/settlements/${encodeURIComponent(id)}/mark-paid`, { method: "POST", body: JSON.stringify({ externalReference, note: note || undefined }) }),
   platformRefundRequests: () => request<any[]>("/platform/refund-requests"),
   executePlatformRefund: (refundId: string) => request<any>(`/platform/refunds/${encodeURIComponent(refundId)}/execute`, { method: "POST" }),
   reconcilePlatformRefund: (refundId: string) => request<any>(`/platform/refunds/${encodeURIComponent(refundId)}/reconcile`, { method: "POST" }),

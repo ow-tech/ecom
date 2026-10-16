@@ -83,3 +83,7 @@ The Supplier Workspace consumes the existing organization-scoped balance, ledger
 commission, and settlement read APIs. It is deliberately read-only: settlement
 creation, approval, payment marking, and manual adjustments remain platform actions.
 See `supplier-business-management-ui.md` for the UI contract.
+
+## Platform finance interface
+
+The platform finance UI reads balances and settlement records. A privileged operator may create server-derived DRAFT settlements, approve them, and enter an external payment reference to acknowledge payment. This is **not** an automatic bank payout. See [platform-finance-operations.md](platform-finance-operations.md).
