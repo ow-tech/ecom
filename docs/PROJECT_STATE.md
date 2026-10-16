@@ -1,0 +1,133 @@
+# Project State
+
+## Current architecture
+
+The platform is a modular monolith: a Next.js browser application calls a
+NestJS backend, which owns business logic and persistence access. PostgreSQL
+is the primary data store and Redis is local supporting infrastructure.
+
+## Current stack
+
+- Frontend: Next.js App Router, TypeScript, Tailwind CSS
+- Backend: NestJS, TypeScript, Prisma
+- Infrastructure: PostgreSQL 17, Redis 7, Docker Compose
+- Workspace: pnpm workspaces
+
+## Current applications and packages
+
+- `apps/frontend`: minimal Next.js application shell
+- `apps/backend`: NestJS startup shell and health endpoint
+- `packages/shared-types`: reserved for explicit cross-application contracts
+
+## Current infrastructure
+
+`docker-compose.yml` provisions local PostgreSQL and Redis with persistent
+named volumes, health checks, and localhost ports.
+
+An opt-in persistent QA workflow is available through `pnpm qa:up`. It uses an
+isolated Compose project/database (`ecom-qa` / `ecom_local_qa`), guarded,
+idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LOCAL.md).
+
+## Implemented features
+
+- One-page checkout preview, prepare, and Paystack Card/M-Pesa selection. M-Pesa
+  is feature-gated server-side (`PAYSTACK_MPESA_ENABLED`) and only available for
+  KES. Pending/unknown confirmation, refresh recovery, resume, and rate-limited
+  authoritative verification remain on `/checkout`; the legacy payment route is
+  retained for callback, history, and recovery. Fresh migration, focused
+  Nest/PostgreSQL and frontend interaction proof pass; authenticated local
+  Chrome at 375px/1280px covers checkout layout, while a controlled provider
+  double covers the server-returned hosted redirect and accessible unknown/error states. The
+  configured TEST credential returns HTTP 401, so actual provider transactions,
+  merchant M-Pesa eligibility, and public webhook delivery remain pending.
+- Customer delivery addresses now have a dedicated `/account/addresses` experience
+  with add, view, edit, delete, and explicit default management. Checkout shares the
+  complete address form, re-previews delivery fees after selected-address edits, and
+  retains the existing immutable order-address snapshot boundary. Focused React and
+  fresh HTTP/PostgreSQL ownership/rating/snapshot tests pass; authenticated responsive
+  browser verification remains pending.
+
+- Repository foundation
+- Frontend shell
+- Frontend design-system consolidation across storefront, authentication,
+  cart/checkout, account, supplier, and platform surfaces. Cart and checkout
+  now share canonical summary, money, form, selectable-card, and quantity
+  controls. Customer payment/order continuity now uses the same system: prepared
+  orders open a canonical payment/detail route, initialize Paystack through the
+  backend, and use bounded server-status confirmation without treating redirects
+  or client timeouts as payment proof.
+- Storefront shopping refinement: server-confirmed Add to Cart stays on the
+  product page, updates the canonical CartProvider count, and uses a sticky
+  shared storefront header with a visible cart icon/count, decorative measured
+  800ms desktop / 1000ms mobile flight, pulse, and four-second product/variant
+  confirmation with reduced-motion fallback. Cart exposes a
+  safe Continue Shopping return to the last `/products` URL. Catalogue category
+  navigation is query-backed, touch-scrollable, and uses request-fenced,
+  ProductCard-shaped skeletons while filters load. Focused React tests cover
+  Cart confirmation/failure and filter response fencing; rendered browser/mobile
+  verification remains pending.
+- Public catalogue filtering now has URL-backed category, supplier, currency,
+  Decimal price range, and stable product sorting semantics. The canonical
+  product endpoint filters eligible offers before pagination and returns safe
+  filter metadata. A fresh disposable PostgreSQL 16/Nest HTTP suite covers
+  eligibility-before-pagination, decimal price bounds, exact totals, sorting,
+  and safe projections. Responsive browser verification remains pending. Cart continuation is now an outline action and
+  Clear Cart is confirmed before its canonical mutation.
+- Storefront catalogue Supplier, Currency, and Sort now use a scoped branded,
+  collision-aware portal select without changing native controls in checkout or
+  workspaces. Search is live after a two-character/400ms threshold, reuses one
+  response for suggestions and grid, aborts/fences stale calls, and uses bounded
+  query caching. Full browser QA remains pending.
+- Backend shell
+- Local PostgreSQL
+- Local Redis
+- Identity, server-side sessions, organizations, memberships, and scoped RBAC
+- Supplier domain, onboarding, platform review, and append-only lifecycle history
+- Supplier operational workspace: permission-aware organization switching, live supplier profile, searchable safe product/variant selection, listing edit/lifecycle, inventory receipt/removal/manual adjustment, supplier-order and secure pickup/delivery fulfilment views using canonical scoped APIs. A fresh PostgreSQL 16 migration/seed-twice run and focused real Nest loopback HTTP suite now prove the overview tenant/permission matrix and aggregate totals (22 active listings, 2 stock-attention items, 2 preparing, 2 ready; values remain correct beyond ordinary list pagination). Vitest/jsdom interaction tests protect overview retry/permission omission, listing selection, inventory conflict refresh, stale organization responses, and secure pickup completion including code privacy and authoritative conflict refresh. SUPPLIER_WORKSPACE_IMPLEMENTATION: COMPLETE. SUPPLIER_WORKSPACE_RELEASE_VERIFICATION: BROWSER_PENDING.
+- Catalogue foundation: platform categories, products, variants and media metadata; supplier-owned offers
+- Inventory foundation: supplier locations, stock levels, append-only movements, atomic reservations, and real PostgreSQL/Nest HTTP concurrency verification
+- Customer commerce core: lazy customer profiles, owned delivery addresses, server-priced carts, idempotent checkout, owned inventory reservations, multi-supplier orders, immutable order snapshots, history, and unpaid cancellation
+- Paystack payment attempts, signed webhook evidence, server-side verification, atomic order settlement, payment reconciliation, and exact-once reservation expiry
+- SupplierOrder fulfilment lifecycle and append-only operational tracking
+- Platform pickup points, pickup checkout fees/snapshots, and hashed collection verification
+- Delivery zones/rates, manual delivery quotes before payment, and customer tracking
+- Refund request/provider-refund foundation with Paystack reconciliation evidence and focused real HTTP/PostgreSQL verification
+- Return requests, immutable warranty snapshots/claims, supplier commissions, append-only ledger, and manual settlement batches with focused real HTTP/PostgreSQL financial/concurrency verification
+- Supplier business-management UI: permission-aware finance, settlement, return, warranty, and support views in the established Supplier Workspace. It uses only canonical supplier-scoped APIs and preserves platform-only financial and after-sales lifecycle actions. Supplier ledger reads use bounded offset pagination with `createdAt DESC, id DESC` ordering and authoritative balance separation. The focused 11-case Supplier Workspace React suite, 14-case financial/after-sales HTTP suite, and 8-case support/operations HTTP suite pass on a fresh seeded PostgreSQL 16 database; authenticated responsive browser verification remains release-verification debt.
+- Post-order finance verification now also includes focused least-privilege refund/finance RBAC, cross-customer and cross-supplier read denial, and direct PostgreSQL financial constraint proof
+- Post-order finance verification includes real concurrent canonical commission completion and settlement mark-paid races; mark-paid retries PostgreSQL serializable conflicts before returning its idempotent result
+- Post-order finance verification is complete: real HTTP/PostgreSQL coverage now proves item-scoped projections for shared multi-supplier returns, warranty REFUND retry/concurrency exact-once behavior, and non-positive, currency-isolated, and post-settlement accounting boundaries.
+- Operational outbox, in-app notifications, support tickets, local append-only audit evidence, and permission-gated platform operations are implemented. Operations now has a count-only summary and paginated sanitized triage queues; checkout emits created/payment-required and cancellation intents transactionally. Payment-review, reservation-expiry, delivery-quote-ready, refund/return/warranty/settlement lifecycle transitions, and platform support reply/resolution transitions enqueue notification intent transactionally. Fulfilment notices are parent-order aggregate events, preventing premature or duplicate notices for multi-supplier orders; successful settlement notifies eligible active supplier members of actionable supplier orders. External EMAIL/SMS attempts are append-only and without a configured provider record `NOT_CONFIGURED`, never fake delivery. Supplier lifecycle transitions, product updates, manual inventory adjustments, platform payment reconciliation, provider refund results, return completion, and warranty resolution commit their append-only audit evidence in their canonical transactions; audit metadata strips sensitive keys recursively while retaining safe context.
+- Customer post-purchase UI is implemented and production-build verified: owned order history, canonical order/payment detail with real tracking and multi-supplier progress, customer-safe delivery/pickup details, and owned support ticket list/create/public-reply flows. A fresh disposable PostgreSQL 16 migration/seed and real Nest loopback HTTP suite prove customer order/payment/tracking ownership and support transaction/privacy behavior. Browser journeys, responsive viewport checks, and live Paystack remain pending.
+- Platform commerce administration UI now extends the existing WorkspaceShell
+  with permission-aware overview, supplier lifecycle, category/product,
+  order, delivery/pickup, payment-exception, after-sales, and support routes.
+  It calls canonical APIs only and intentionally exposes no browser-side
+  settlement or payout control. Cross-supplier listing oversight now uses a
+  dedicated paginated `GET /platform/listings` projection under
+  `platform.products.read`, with server-side filters, deterministic ordering,
+  safe availability state and no browser aggregation of tenant APIs. Fresh
+  PostgreSQL 16 HTTP proof covers listing RBAC/filter/pagination/redaction;
+  authenticated browser and the remaining platform-admin control matrix remain
+  pending.
+
+## Current blockers
+
+The requested exhaustive operations closure matrix remains verification-pending: commerce and supplier notification event rows, deterministic operations summary/queue fixtures, privileged audit actions, audit query/filter coverage, and deep sanitizer proof have not all been executed in one real HTTP/PostgreSQL suite.
+
+On 2026-10-08, a fresh disposable PostgreSQL 16 database received all ten
+migrations and the idempotent seed twice. The focused post-order finance suite
+now passes 14/14 and the operations outbox suite passes 8/8. The historic
+return-history assertion was reproduced as correct (creation plus four
+transitions plus completion equals six rows). The observed aggregate-run flake
+was instead a ledger pagination test incorrectly requiring a UUID-tie row on
+page one; it now asserts the combined deterministic pages. The final clean
+aggregate command passed 10 suites/70 tests in 46.025 seconds, including
+`marketplace-e2e.int.spec.ts`, a canonical
+real HTTP/PostgreSQL A–J flow using provider-test evidence rather than direct
+final-state inserts.
+
+## Current risks
+
+Courier integrations, notifications, live supplier bank payouts, and repair/replacement logistics remain deferred. Reservation expiry is exposed as a bounded platform operation and must
+be invoked by deployment scheduling until a shared scheduler is introduced.

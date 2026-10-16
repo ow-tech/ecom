@@ -1,0 +1,31 @@
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+!.env.example
+.qa/
+qa-artifacts/
+
+# Local caches, temporary files, and source archives
+.cache/
+.tmp/
+tmp/
+*.tmp
+*.temp
+*.zip
+
+# Generated credentials and private key material
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+
+*.log
+.DS_Store

@@ -1,0 +1,15 @@
+import type { CustomerTracking } from "../lib/api";
+import { SectionHeader, StatusBadge, Surface } from "./ui";
+
+const labels: Record<string, string> = { PENDING_PAYMENT: "Order placed", PAYMENT_CONFIRMED: "Payment confirmed", PROCESSING: "Preparing", READY_FOR_PICKUP: "Ready for pickup", READY_FOR_DISPATCH: "Ready for dispatch", OUT_FOR_DELIVERY: "Out for delivery", DELIVERED: "Completed", COMPLETED: "Completed", AWAITING_DELIVERY_QUOTE: "Waiting for delivery quote", PAYMENT_REVIEW: "Payment review", CANCELLED: "Cancelled", EXPIRED: "Expired", CONFIRMED: "Payment confirmed", PREPARING: "Preparing" };
+const display = (status: string) => labels[status] ?? status.replaceAll("_", " ");
+
+export function OrderTrackingTimeline({ tracking }: { tracking: CustomerTracking }) {
+  return <section className="mt-5"><SectionHeader title="Tracking" description="Updates are shown only after they are recorded for this order." />
+    {tracking.quote?.status === "PENDING" && <Surface className="mt-4"><StatusBadge tone="info">Waiting for delivery quote</StatusBadge><p className="mt-3 text-sm text-foreground-muted">Payment will be available after the delivery quote is approved.</p></Surface>}
+    {tracking.fulfillmentMethod === "PICKUP" && tracking.pickup && <Surface className="mt-4"><h3 className="font-bold">Pickup location</h3><p className="mt-2 text-sm text-foreground-muted">{tracking.pickup.name}<br />{tracking.pickup.address}, {tracking.pickup.city}, {tracking.pickup.region}</p>{tracking.pickup.phone && <p className="mt-2 text-sm text-foreground-muted">{tracking.pickup.phone}</p>}</Surface>}
+    {tracking.fulfillmentMethod === "DELIVERY" && tracking.delivery && <Surface className="mt-4"><h3 className="font-bold">Delivery destination</h3><p className="mt-2 text-sm text-foreground-muted">{[tracking.delivery.city, tracking.delivery.region, tracking.delivery.countryCode].filter(Boolean).join(", ")}</p></Surface>}
+    {tracking.supplierProgress.length > 1 && <Surface className="mt-4"><h3 className="font-bold">Supplier progress</h3><div className="mt-3 space-y-2">{tracking.supplierProgress.map((supplier, index) => <div className="flex flex-wrap items-center justify-between gap-2 text-sm" key={`${supplier.supplierDisplayName}-${index}`}><span>{supplier.supplierDisplayName}</span><StatusBadge>{display(supplier.status)}</StatusBadge></div>)}</div></Surface>}
+    <ol className="mt-4 space-y-3" aria-label="Order tracking history">{tracking.timeline.map((event, index) => <li className="flex gap-3" key={`${event.timestamp}-${index}`}><span aria-hidden className="mt-1.5 h-3 w-3 shrink-0 rounded-full bg-secondary" /><div className="min-w-0"><p className="font-semibold">{display(event.status)}{event.supplierDisplayName ? ` · ${event.supplierDisplayName}` : ""}</p>{event.message && <p className="mt-1 text-sm text-foreground-muted">{event.message}</p>}<time className="mt-1 block text-xs text-foreground-muted" dateTime={event.timestamp}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.timestamp))}</time></div></li>)}</ol>
+  </section>;
+}

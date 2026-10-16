@@ -1,0 +1,43 @@
+# Launch readiness
+
+## Status: IMPLEMENTED_VERIFICATION_PARTIAL
+
+| Area | Classification | Evidence / gap |
+| --- | --- | --- |
+| Customer registration/login | RELEASE_VERIFICATION_REQUIRED | Server session exists; browser journey not rerun. |
+| Supplier onboarding/approval | RELEASE_VERIFICATION_REQUIRED | Canonical A–J HTTP fixture proves submit/platform approval/history; browser and staging proof remain. |
+| Catalogue and offers | RELEASE_VERIFICATION_REQUIRED | A–J and listing HTTP proof pass; browser image delivery remains. |
+| Product media | RELEASE_VERIFICATION_REQUIRED | URL metadata projects safely in HTTP; fetch failure/fallback and host configuration remain unproven. `PRODUCT_MEDIA_BINARY_UPLOAD_NOT_IMPLEMENTED`. |
+| Cart/checkout/payment/fulfilment/tracking | RELEASE_VERIFICATION_REQUIRED | Canonical A–J fixture and authenticated local Chrome at 375/1280 prove server lifecycle/layout; hosted-redirect and safe rejected/unknown error UI use a controlled provider double. Live-provider/public-webhook proof remains. |
+| Support privacy | RELEASE_VERIFICATION_REQUIRED | A–J fixture proves public reply/internal-note exclusion; browser proof remains. |
+| Tenant/platform isolation | RELEASE_VERIFICATION_REQUIRED | A–J and focused suites prove cross-supplier/customer denial; staging proof remains. |
+| Full backend regression | RELEASE_VERIFICATION_REQUIRED | 2026-10-12 fresh isolated aggregate: 10 suites/72 tests, exit 0, 48.44 seconds; retain it in CI. |
+| Production DB, backups and restore | LAUNCH_BLOCKER | No tested production backup/restore evidence. |
+| Deployment and TLS | LAUNCH_BLOCKER | Deployment/Nginx/TLS remain deferred. |
+| Git release integrity | LAUNCH_BLOCKER | `.git` is unusable; release provenance cannot be established here. |
+
+## Required before launch
+
+Verify authenticated customer/supplier/platform browser flows at 375px,
+768px and 1280px; perform Paystack sandbox, image delivery/fallback, deployment,
+TLS, database-backup and restore checks.
+
+## Provider and media release gates
+
+`PAYSTACK_SECRET_KEY` is required by backend configuration. A real test-mode
+run additionally needs a public `PAYSTACK_CALLBACK_BASE_URL`, an Internet
+reachable `/payments/paystack/webhook` endpoint, and a webhook signature check
+using the configured secret. Staging must verify initialized payment, signed
+success evidence, canonical convergence to `PAYMENT_CONFIRMED`, repeat evidence
+dedupe, and the `PAYMENT_REVIEW` branch for late or ambiguous evidence.
+The deterministic provider harness is not a live Paystack transaction.
+
+Product media is URL metadata only. The API safely projects an external image
+URL, but browser fetch failure/fallback and any production image-host policy
+were not executed. `PRODUCT_MEDIA_BINARY_UPLOAD_NOT_IMPLEMENTED` remains a
+separate post-launch capability, not a reason to claim media delivery proof.
+
+## Deferred scope
+
+Binary media upload/storage, advanced accounting, automatic supplier payouts,
+tax reporting, CRM, recommendations and marketing automation remain out of scope.

@@ -1,0 +1,7 @@
+import { ConflictException, Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service"; import { RbacService } from "../rbac/rbac.service";
+@Injectable() export class OrganizationsService { constructor(private readonly prisma: PrismaService, private readonly rbac: RbacService) {}
+  async create(userId: string, name: string, slug: string) { try { return await this.prisma.$transaction(async (tx) => { const organization = await tx.organization.create({ data: { name, slug } }); const membership = await tx.organizationMembership.create({ data: { organizationId: organization.id, userId, status: "ACTIVE" } }); const owner = await tx.role.findUniqueOrThrow({ where: { key: "organization.owner" } }); await tx.membershipRole.create({ data: { membershipId: membership.id, roleId: owner.id } }); return organization; }); } catch (error) { if ((error as { code?: string }).code === "P2002") throw new ConflictException("Organization slug is already in use"); throw error; } }
+  async list(userId: string) { return this.prisma.organization.findMany({ where: { memberships: { some: { userId, status: "ACTIVE" } } }, orderBy: { createdAt: "asc" } }); }
+  async get(userId: string, organizationId: string) { await this.rbac.organizationContext(userId, organizationId); return this.prisma.organization.findUniqueOrThrow({ where: { id: organizationId } }); }
+}

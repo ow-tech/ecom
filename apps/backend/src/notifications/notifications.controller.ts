@@ -1,0 +1,9 @@
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { IsArray, IsBoolean, IsOptional, IsString, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
+import { SessionAuthGuard } from "../auth/auth.guard"; import { CurrentUser } from "../auth/current-user.decorator"; import { AuthenticatedUser } from "../auth/auth.types"; import { NotificationService } from "./notification.service";
+class PreferenceDto { @IsString() category!: string; @IsOptional() @IsBoolean() inAppEnabled?: boolean; @IsOptional() @IsBoolean() emailEnabled?: boolean; @IsOptional() @IsBoolean() smsEnabled?: boolean; }
+class PreferencesDto { @IsArray() @ValidateNested({ each: true }) @Type(() => PreferenceDto) categories!: PreferenceDto[]; }
+@UseGuards(SessionAuthGuard)
+@Controller()
+export class NotificationsController { constructor(private readonly notifications: NotificationService) {} @Get("notifications") list(@CurrentUser() u: AuthenticatedUser, @Query("page") page?: string, @Query("limit") limit?: string) { return this.notifications.list(u.id, Math.max(1, Number(page ?? 1)), Math.min(100, Math.max(1, Number(limit ?? 50)))); } @Get("notifications/unread-count") async unread(@CurrentUser() u: AuthenticatedUser) { return { count: await this.notifications.unreadCount(u.id) }; } @Post("notifications/:id/read") read(@CurrentUser() u: AuthenticatedUser, @Param("id") id: string) { return this.notifications.markRead(u.id, id); } @Post("notifications/read-all") readAll(@CurrentUser() u: AuthenticatedUser) { return this.notifications.markAllRead(u.id); } @Get("notification-preferences") preferences(@CurrentUser() u: AuthenticatedUser) { return this.notifications.preferences(u.id); } @Patch("notification-preferences") update(@CurrentUser() u: AuthenticatedUser, @Body() dto: PreferencesDto) { return this.notifications.updatePreferences(u.id, dto.categories); } }

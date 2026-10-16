@@ -1,0 +1,28 @@
+{
+  "name": "ecom-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @ecom/frontend --filter @ecom/backend dev",
+    "dev:frontend": "pnpm --filter @ecom/frontend dev",
+    "dev:backend": "pnpm --filter @ecom/backend dev",
+    "infra:up": "docker compose up -d postgres redis",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f postgres redis",
+    "qa:up": "bash scripts/qa/up.sh",
+    "qa:down": "bash scripts/qa/down.sh",
+    "qa:seed": "bash scripts/qa/run.sh qa:seed",
+    "qa:verify": "bash scripts/qa/run.sh qa:verify",
+    "qa:reset": "bash scripts/qa/run.sh qa:reset",
+    "build": "pnpm --filter @ecom/shared-types build && pnpm --filter @ecom/backend build && pnpm --filter @ecom/frontend build",
+    "lint": "pnpm --filter @ecom/backend lint && pnpm --filter @ecom/frontend lint",
+    "typecheck": "pnpm --filter @ecom/shared-types typecheck && pnpm --filter @ecom/backend typecheck && pnpm --filter @ecom/frontend typecheck",
+    "test": "pnpm --filter @ecom/backend test",
+    "test:integration": "pnpm --filter @ecom/backend test:integration",
+    "prisma:generate": "pnpm --filter @ecom/backend prisma:generate",
+    "prisma:migrate:dev": "pnpm --filter @ecom/backend prisma:migrate:dev",
+    "prisma:migrate:deploy": "pnpm --filter @ecom/backend prisma:migrate:deploy",
+    "prisma:studio": "pnpm --filter @ecom/backend prisma:studio"
+  }
+}

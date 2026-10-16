@@ -1,0 +1,10 @@
+import { BadRequestException, Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import { OperationalOutboxStatus } from "@prisma/client";
+import { SessionAuthGuard } from "../auth/auth.guard";
+import { CurrentUser } from "../auth/current-user.decorator";
+import { AuthenticatedUser } from "../auth/auth.types";
+import { RbacService } from "../rbac/rbac.service";
+import { OperationalOutboxService } from "./operations.service";
+@UseGuards(SessionAuthGuard)
+@Controller("platform/operations")
+export class OperationsOutboxController { constructor(private readonly outbox: OperationalOutboxService, private readonly rbac: RbacService) {} private async access(user: AuthenticatedUser) { await this.rbac.requirePlatform(user.id, "platform.operations.read"); } private page(value?: string) { return Math.max(1, Number(value ?? 1)); } private limit(value?: string) { return Math.min(100, Math.max(1, Number(value ?? 50))); } @Get("outbox") async list(@CurrentUser() user: AuthenticatedUser, @Query("status") status?: OperationalOutboxStatus, @Query("eventType") eventType?: string, @Query("aggregateType") aggregateType?: string, @Query("page") page?: string, @Query("limit") limit?: string) { await this.access(user); return this.outbox.list(status, eventType, aggregateType, this.page(page), this.limit(limit)); } @Get("summary") async summary(@CurrentUser() user: AuthenticatedUser) { await this.access(user); return this.outbox.summary(); } @Get(":queue") async queue(@CurrentUser() user: AuthenticatedUser, @Param("queue") queue: string, @Query("page") page?: string, @Query("limit") limit?: string) { await this.access(user); const allowed = ["payment-review", "delivery-quotes", "refunds", "returns", "warranties", "settlements", "support-overdue", "outbox-failures"] as const; if (!(allowed as readonly string[]).includes(queue)) throw new BadRequestException("Unknown operations queue"); return this.outbox.queue(queue as Parameters<OperationalOutboxService["queue"]>[0], this.page(page), this.limit(limit)); } }

@@ -1,0 +1,12 @@
+"use client";
+
+import { SelectableCard } from "./ui";
+
+export type CheckoutPaymentMethod = "CARD" | "MPESA";
+
+export function CheckoutPaymentOptions({ available, selected, onSelect, heading = "Payment method" }: { available: CheckoutPaymentMethod[]; selected: CheckoutPaymentMethod; onSelect: (method: CheckoutPaymentMethod) => void; heading?: string }) {
+  return <div role="radiogroup" aria-label="Payment method"><h2 className="text-lg font-bold">{heading}</h2><p className="mt-1 text-sm text-foreground-muted">Only methods currently eligible for this order are shown.</p><div className="mt-4 grid gap-3 sm:grid-cols-2">
+    {available.includes("CARD") && <SelectableCard role="radio" aria-label="Visa or Mastercard" aria-checked={selected === "CARD"} selected={selected === "CARD"} onClick={() => onSelect("CARD")}><span className="flex items-center justify-between gap-3"><strong>Card</strong>{selected === "CARD" && <span className="text-xs font-bold text-primary">✓ Selected</span>}</span><span className="mt-3 flex items-center gap-2" aria-hidden><span className="rounded bg-[#1434CB] px-2 py-1 text-xs font-black italic tracking-tight text-white">VISA</span><span className="relative inline-flex h-7 w-12 items-center"><span className="absolute left-0 h-7 w-7 rounded-full bg-[#EB001B]" /><span className="absolute right-0 h-7 w-7 rounded-full bg-[#F79E1B] opacity-90" /></span><span className="text-xs font-semibold text-foreground-muted">Mastercard</span></span><span className="mt-3 block text-sm leading-5 text-foreground-muted">Enter card details only on Paystack’s secure hosted checkout. This store never collects your card number or CVV.</span></SelectableCard>}
+    {available.includes("MPESA") && <SelectableCard role="radio" aria-label="M-Pesa mobile payment" aria-checked={selected === "MPESA"} selected={selected === "MPESA"} onClick={() => onSelect("MPESA")}><span className="flex items-center justify-between gap-3"><strong>M-Pesa</strong>{selected === "MPESA" && <span className="text-xs font-bold text-primary">✓ Selected</span>}</span><span className="mt-3 inline-flex rounded-md bg-[#37B34A] px-3 py-1 text-sm font-black tracking-wide text-white" aria-hidden>M‑PESA</span><span className="mt-3 block text-sm leading-5 text-foreground-muted">Continue to Paystack, enter your eligible Kenyan M-Pesa number, then authorize the prompt on your phone.</span></SelectableCard>}
+  </div></div>;
+}

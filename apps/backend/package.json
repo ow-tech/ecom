@@ -1,0 +1,59 @@
+{
+  "name": "@ecom/backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "lint": "eslint \"{src,test}/**/*.ts\" --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand",
+    "test:integration": "jest --config jest.integration.config.js --runInBand",
+    "worker:operations": "ts-node src/operations/worker.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "paystack:test-check": "ts-node scripts/paystack/test-check.ts"
+    ,"qa:seed": "ts-node scripts/qa/seed.ts"
+    ,"qa:verify": "ts-node scripts/qa/verify.ts"
+    ,"qa:reset": "ts-node scripts/qa/reset.ts"
+  },
+  "dependencies": {
+    "argon2": "^0.41.1",
+    "@nestjs/common": "^11.0.11",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.11",
+    "@nestjs/platform-express": "^11.0.11",
+    "@prisma/client": "^6.5.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "cookie-parser": "^1.4.7",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "prisma": { "seed": "ts-node prisma/seed.ts" },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.5",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.11",
+    "@types/express": "^5.0.1",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.14.1",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.2",
+    "jest": "^29.7.0",
+    "prettier": "^3.5.3",
+    "prisma": "^6.5.0",
+    "source-map-support": "^0.5.21",
+    "ts-jest": "^29.2.6",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

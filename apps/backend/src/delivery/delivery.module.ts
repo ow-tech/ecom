@@ -1,0 +1,3 @@
+import { Module } from "@nestjs/common"; import { AuthModule } from "../auth/auth.module"; import { CustomerModule } from "../customer/customer.module"; import { RbacModule } from "../rbac/rbac.module"; import { OperationsModule } from "../operations/operations.module";
+import { CustomerDeliveryController, PlatformDeliveryController } from "./delivery.controller"; import { DeliveryService } from "./delivery.service"; import { DeliveryZoneResolver } from "./delivery-zone-resolver.service";
+@Module({ imports: [AuthModule, CustomerModule, RbacModule, OperationsModule], controllers: [PlatformDeliveryController, CustomerDeliveryController], providers: [DeliveryService, DeliveryZoneResolver], exports: [DeliveryService, DeliveryZoneResolver] }) export class DeliveryModule {}
