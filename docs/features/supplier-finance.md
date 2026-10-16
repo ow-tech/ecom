@@ -2,7 +2,7 @@
 
 ## Commission and ledger
 
-Completion of each `SupplierOrder` creates at most one immutable `CommissionRecord` per OrderItem. The rate comes from the effective supplier rate or validated `DEFAULT_COMMISSION_RATE`, is snapshotted on the record, and uses Decimal half-up two-decimal commission rounding. A nonzero supplier net posts one `SUPPLIER_EARNING` ledger entry; a valid zero net (for example, a 100% commission) remains an immutable commission record but creates no prohibited zero-value ledger entry.
+Completion of each `SupplierOrder` creates at most one immutable `CommissionRecord` per OrderItem. The rate comes from an effective supplier override, else the effective platform-managed default, else validated initial `DEFAULT_COMMISSION_RATE` (10%), and is snapshotted on the record, and uses Decimal half-up two-decimal commission rounding. A nonzero supplier net posts one `SUPPLIER_EARNING` ledger entry; a valid zero net (for example, a 100% commission) remains an immutable commission record but creates no prohibited zero-value ledger entry.
 
 The append-only ledger is supplier-perspective: positive means the platform owes more; negative means it owes less. Successful refunds post proportional `REFUND_DEBIT` entries using the historical commission rate. Corrections are manual adjustment entries, never mutations. Balances are sums of ledger entries by supplier/currency.
 
@@ -91,3 +91,7 @@ The platform finance UI reads balances and settlement records. A privileged oper
 ## Manual bank and M-Pesa payout methods (2026-10-16)
 
 The Supplier Finance portal now includes `SupplierPayoutDestinations`: owner-managed encrypted payee instructions and masked financial-reader records. The Platform Finance portal selects an active, same-currency payout destination when creating a draft and can explicitly reveal a linked recipient for manual transfer under `platform.settlements.manage`. Existing settlement and ledger amounts are already net of platform commission: never deduct it again at payout. See [manual-supplier-payouts.md](manual-supplier-payouts.md).
+
+## Configurable platform and supplier commission
+
+The platform default is editable in Platform Finance and stored as effective-dated `PlatformCommissionRate` history; initial default remains 10% if no platform row exists. Existing supplier rate schedules have priority while active. Supplier Finance displays the current effective and platform default rates. Reset of current supplier overrides causes automatic future fallback without rewriting any prior `CommissionRecord`. See [configurable-commission-policy.md](configurable-commission-policy.md).

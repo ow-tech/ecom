@@ -50,3 +50,7 @@ Supplier sales must use a commission percentage greater than 0 and at most 100%.
 ## Verification of strictly positive commission policy
 
 The updated `dev` CI run [38904493490](https://github.com/ow-tech/ecom/actions/runs/38904493490) passed all TypeScript/lint/build checks, 23 backend unit tests, 25 frontend test files, 83 HTTP/PostgreSQL integration tests, and 16 migrations. The finance regression asserts that the platform endpoint rejects 0% schedules (HTTP 400) and PostgreSQL rejects new 0% rate records. The default remains 10%, with positive supplier-specific schedules supported. For tiny payments whose commission rounds to zero in the currency's minor unit, a separate minimum cash-fee decision is still required; no new fee amount was invented.
+
+## Adjustable commission default
+
+Initial standard commission: **10%**. Platform finance may adjust the global fallback; a supplier-specific rate takes precedence only while effective. Both are evaluated during fulfilment commission posting. Bank and M-Pesa settlement balances are already net, and manual paid acknowledgement does not subtract the marketplace fee again. See [configurable-commission-policy.md](configurable-commission-policy.md).

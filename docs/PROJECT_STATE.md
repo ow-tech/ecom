@@ -44,6 +44,13 @@ idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LO
 - **Background jobs:** outbox crash recovery uses lease expiration and stale-worker fencing; concurrent outbox writes use PostgreSQL-native `INSERT ... ON CONFLICT DO NOTHING` with authoritative winner lookup. Existing one-shot worker still needs deployment scheduling and monitoring.
 - **Verified CI:** [run 38897430108](https://github.com/ow-tech/ecom/actions/runs/38897430108) passed backend unit 23/23, frontend 24/24 test files, HTTP/PostgreSQL integration 82/82, 14 migrations, typecheck, lint and production builds. No real email/SMS, bank transfers or Paystack refund activity was performed.
 
+## Configurable marketplace commission — 2026-10-16
+
+- The initial 10% default is now editable in Platform Finance and stored as an effective-dated `PlatformCommissionRate` with audit evidence. Suppliers have optional effective-dated overrides; no active supplier override inherits the current platform default, then the environment fallback if no platform setting has ever been created.
+- Supplier Finance displays the effective rate and base rate. Updates only affect eligible future fulfilment postings; historical `CommissionRecord` and net ledger entries remain unchanged.
+- The canonical commission/settlement flow continues to deduct the fee once at earning, not at manual bank/M-Pesa payout. Rate configuration and full PostgreSQL/browser verification should be assessed using the latest CI run and documented feature note.
+- Feature documentation: [configurable-commission-policy.md](features/configurable-commission-policy.md).
+
 ## Manual supplier payout destination feature — 2026-10-16
 
 - Bank transfers and Kenyan M-Pesa are manual platform-controlled payouts: supplier owners register encrypted instructions; platform finance chooses a currency-matched recipient while creating a settlement draft and may explicitly reveal full instructions with audit evidence.

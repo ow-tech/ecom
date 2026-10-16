@@ -255,6 +255,12 @@ Status: IMPLEMENTED_VERIFICATION_PARTIAL. The existing platform audit nav now op
 
 Feature documentation: [platform-audit-explorer.md](features/platform-audit-explorer.md)
 
+## Platform Default and Supplier-Specific Commissions
+
+Status: IMPLEMENTED_VERIFICATION_PENDING. Editable, versioned platform default (initially 10%), optional supplier effective-dated overrides and reset-to-default, supplier portal read visibility, canonical fulfilment rate resolution and targeted regressions committed to `dev`. Current CI and browser release verification are separate gates.
+
+Feature documentation: [configurable-commission-policy.md](features/configurable-commission-policy.md)
+
 ## Marketplace commission on every supplier sale
 
 Status: LOCAL_VERIFIED. New commission schedules and the configured fallback require a positive rate, with PostgreSQL rejecting new 0% schedules. Existing commission history is untouched; supplier settlements remain net of fees without a second deduction. GitHub CI run 38904493490 passed (23 unit, 25 frontend files, 83 integration tests, 16 migrations). Tiny fees can still round to zero; minimum-fee policy undecided.

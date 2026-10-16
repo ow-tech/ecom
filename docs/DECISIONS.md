@@ -100,3 +100,7 @@ entries rather than mutation. Supplier balances derive from signed ledger entrie
 Notifications and other operational work are recorded in PostgreSQL outbox rows
 within the business transaction, then claimed by a bounded retry worker. Delivery
 failure cannot roll back payment, order, fulfilment, or refund truth.
+
+## DEC-018: Effective-dated platform default with supplier commission precedence
+
+The initial marketplace commission rate is 10%, configurable by platform finance. Each supplier may have an effective-dated override; otherwise an effective platform default is used, then the validated `DEFAULT_COMMISSION_RATE` initial fallback. Rate changes create/close schedules, never rewrite earned commission snapshots or supplier ledger/settlement records. Backend policy evaluation occurs at the canonical fulfilment earnedAt timestamp; payout never deducts fee twice. See `docs/features/configurable-commission-policy.md`.
