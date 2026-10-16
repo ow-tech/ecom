@@ -207,7 +207,7 @@ describe("customer cart checkout and order core integration", () => {
     await prisma.product.update({ where: { id: a.productId }, data: { name: "Renamed after checkout" } });
     const detail = await http("GET", `/customer/orders/${order.id}`, undefined, customer.cookie);
     expect(detail.body.items.find((item: { productId: string }) => item.productId === a.productId).productNameSnapshot).not.toBe("Renamed after checkout");
-    expect((await http("GET", `/customer/orders/${order.id}`, undefined, ownerA.cookie)).status).toBe(404);
+    expect((await http("GET", `/customer/orders/${order.id}`, undefined, ownerA.cookie)).status).toBe(403);
     const supplierA = await http("GET", `/organizations/${a.organizationId}/supplier-orders`, undefined, ownerA.cookie);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(supplierA.status).toBe(200); expect(supplierA.body).toHaveLength(1); expect(supplierA.body[0].items.every((item: any) => item.supplierId === a.supplierId)).toBe(true);

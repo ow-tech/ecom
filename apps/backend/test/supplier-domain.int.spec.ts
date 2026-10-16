@@ -42,7 +42,7 @@ describe("supplier domain integration", () => {
   }
 
   async function account(label: string): Promise<Account> {
-    const response = await http("POST", (/owner|admin|member|staff|platform|supplier|inventory|locations|receive-|physical-|reservation-|history-|concurrency-|constraint-|tenant-|oversight|payviewer|finance-reader|refund-reader|refund-reviewer|multi-org|list-|roles-|url-owner|rbac-|suspend-owner|approve-|reject-|submit-|create-|support-agent|foreign-org|pickup-foreign|pickup-outsider/i.test(label) ? "/auth/workforce/register" : "/auth/register"), { email: email(label), password, displayName: label });
+    const response = await http("POST", ((!/(?:customer(?!.*agent)|foreign-ticket$)/i.test(label) && /owner|admin|member|staff|platform|supplier|inventory|locations|receive-|physical-|reservation-|history-|concurrency-|constraint-|tenant-|oversight|payviewer|finance-reader|refund-reader|refund-reviewer|multi-org|list-|roles-|url-owner|rbac-|suspend-owner|approve-|reject-|submit-|create-|support-agent|foreign-org|pickup-foreign|pickup-outsider|reader|report-|overview-/i.test(label)) ? "/auth/workforce/register" : "/auth/register"), { email: email(label), password, displayName: label });
     expect(response.status).toBe(201);
     const header = (response.headers["set-cookie"] as string[])[0];
     return { id: (response.body as { id: string }).id, cookie: header.split(";", 1)[0] };
