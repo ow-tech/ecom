@@ -529,6 +529,7 @@ model Supplier {
   commissions        CommissionRecord[]
   ledgerEntries      SupplierLedgerEntry[]
   settlements        SupplierSettlement[]
+  payoutDestinations SupplierPayoutDestination[]
   supportTickets     SupportTicket[]
 
   @@index([status])
@@ -1320,6 +1321,32 @@ model SupplierLedgerEntry {
   @@index([supplierId, currencyCode, createdAt])
 }
 
+enum SupplierPayoutType {
+  BANK
+  MPESA
+}
+
+// Details are immutable after creation and encrypted by the application.
+model SupplierPayoutDestination {
+  id                String @id @default(uuid()) @db.Uuid
+  supplierId        String @db.Uuid
+  type              SupplierPayoutType
+  currencyCode      String @db.VarChar(3)
+  accountHolderName String @db.VarChar(160)
+  bankName          String? @db.VarChar(160)
+  bankCountryCode   String? @db.VarChar(2)
+  maskedLastFour    String @db.VarChar(4)
+  encryptedDetails  String @db.Text
+  isActive          Boolean @default(true)
+  createdByUserId   String @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  supplier          Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  settlements       SupplierSettlement[]
+
+  @@index([supplierId, isActive, createdAt])
+}
+
 model SupplierSettlement {
   id                 String                   @id @default(uuid()) @db.Uuid
   supplierId         String                   @db.Uuid
@@ -1336,6 +1363,8 @@ model SupplierSettlement {
   approvedByUserId   String?                  @db.Uuid
   markedPaidAt       DateTime?
   markedPaidByUserId String?                  @db.Uuid
+  payoutDestinationId String? @db.Uuid
+  payoutDestination   SupplierPayoutDestination? @relation(fields: [payoutDestinationId], references: [id], onDelete: Restrict)
   externalReference  String?                  @db.VarChar(200)
   note               String?                  @db.VarChar(1000)
   createdAt          DateTime                 @default(now())

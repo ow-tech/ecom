@@ -1,5 +1,5 @@
 import { Transform, Type } from "class-transformer";
-import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Max, MaxLength, Min } from "class-validator";
+import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from "class-validator";
 
 export class CreateCommissionRateDto {
   @Matches(/^(0(\.\d{1,6})?|1(\.0{1,6})?)$/) rate!: string;
@@ -14,6 +14,7 @@ export class ManualAdjustmentDto {
 }
 
 export class CreateSettlementDto {
+  @IsOptional() @IsUUID() payoutDestinationId?: string;
   @Matches(/^[A-Z]{3}$/) currencyCode!: string;
   @IsOptional() @IsDateString() periodStart?: string;
   @IsOptional() @IsDateString() periodEnd?: string;

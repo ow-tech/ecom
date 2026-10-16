@@ -42,6 +42,7 @@ jobs:
       PAYSTACK_SECRET_KEY: sk_test_integration_only
       PAYSTACK_BASE_URL: http://127.0.0.1:9
       PAYSTACK_MPESA_ENABLED: "false"
+      PAYOUT_DETAILS_ENCRYPTION_KEY: 5a20533079cff0167b183b1d81775cfe84de351d4a30b60da5b9936256af05d6
       NEXT_PUBLIC_API_URL: http://127.0.0.1:4001
     steps:
       - uses: actions/checkout@v4

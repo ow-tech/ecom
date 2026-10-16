@@ -6,10 +6,11 @@ import { RbacService } from "../rbac/rbac.service";
 import { CreateCommissionRateDto, CreateSettlementDto, ManualAdjustmentDto, MarkSettlementPaidDto, SupplierLedgerListDto } from "./dto/finance.dto";
 import { OperationalOutboxService } from "../operations/operations.service";
 import { AuditService } from "../audit/audit.service";
+import { PayoutDestinationsService } from "./payout-destinations.service";
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService, private readonly rbac: RbacService, private readonly outbox: OperationalOutboxService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rbac: RbacService, private readonly outbox: OperationalOutboxService, private readonly audit: AuditService, private readonly payout: PayoutDestinationsService) {}
   private notification(userId: string, type: string, title: string, settlementId: string, key: string) { return { recipientUserId: userId, type, category: "SETTLEMENT", title, body: `Settlement ${settlementId} was ${type.replace("SETTLEMENT_", "").toLowerCase()}.`, entityType: "SUPPLIER_SETTLEMENT", entityId: settlementId, dedupeKey: `notification:${key}` }; }
   private async settlementNotifications(tx: Prisma.TransactionClient, settlement: { id: string; supplierId: string }, type: "SETTLEMENT_CREATED" | "SETTLEMENT_APPROVED" | "SETTLEMENT_PAID") { const recipients = await this.outbox.supplierRecipientIds(tx, settlement.supplierId, ["finance.read"]); for (const userId of recipients) { const key = `settlement:${settlement.id}:${type.replace("SETTLEMENT_", "").toLowerCase()}:user:${userId}`; await this.outbox.enqueue(tx, { eventType: type, aggregateType: "SupplierSettlement", aggregateId: settlement.id, dedupeKey: key, userId, payload: this.notification(userId, type, type.replace("_", " "), settlement.id, key) }); } }
   private async supplier(userId: string, organizationId: string) { await this.rbac.organizationContext(userId, organizationId, "finance.read"); const supplier = await this.prisma.supplier.findUnique({ where: { organizationId } }); if (!supplier) throw new NotFoundException("Supplier not found"); return supplier; }
@@ -48,7 +49,16 @@ export class FinanceService {
       const sum = (type?: SupplierLedgerEntryType) => rows.filter((row) => !type || row.type === type).reduce((total, row) => total.plus(row.amountSigned), new Prisma.Decimal(0));
       const net = sum(); if (net.lte(0)) throw new ConflictException("Settlement net amount must be positive");
       const gross = sum(SupplierLedgerEntryType.SUPPLIER_EARNING); const refunds = sum(SupplierLedgerEntryType.REFUND_DEBIT); const other = net.minus(gross).minus(refunds);
-      const settlement = await tx.supplierSettlement.create({ data: { supplierId, currencyCode: dto.currencyCode, periodStart: start, periodEnd: end, grossEarnings: gross, refundAdjustments: refunds, otherAdjustments: other, netAmount: net, createdByUserId: userId, items: { create: rows.map((row) => ({ ledgerEntryId: row.id, amount: row.amountSigned })) } }, include: { items: true } });
+      const destination = dto.payoutDestinationId
+        ? await this.payout.assertSelectable(tx, supplierId, dto.currencyCode, dto.payoutDestinationId)
+        : null;
+      const settlement = await tx.supplierSettlement.create({ data: {
+        supplierId, currencyCode: dto.currencyCode, periodStart: start, periodEnd: end,
+        grossEarnings: gross, refundAdjustments: refunds, otherAdjustments: other,
+        netAmount: net, createdByUserId: userId,
+        ...(destination ? { payoutDestinationId: destination.id } : {}),
+        items: { create: rows.map(row => ({ ledgerEntryId: row.id, amount: row.amountSigned })) },
+      }, include: { items: true } });
       await this.settlementNotifications(tx, settlement, "SETTLEMENT_CREATED");
       await this.audit.emitInTransaction(tx, { actorUserId: userId, action: "SETTLEMENT_CREATED", entityType: "SUPPLIER_SETTLEMENT", entityId: settlement.id, dedupeKey: `settlement:${settlement.id}:created:audit`, metadata: { supplierId, currencyCode: dto.currencyCode, netAmount: settlement.netAmount.toFixed(2) } });
       return this.settlementOutput(settlement);
