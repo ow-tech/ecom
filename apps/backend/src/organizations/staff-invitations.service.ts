@@ -96,6 +96,7 @@ export class StaffInvitationsService {
           where: { userId: existing.id, role: { key: roleKey } },
         })) throw new ConflictException("User already has this platform role");
       }
+      await tx.staffInvitation.updateMany({ where: { scope, organizationId: organizationId ?? null, emailNormalized: normalized, status: StaffInvitationStatus.PENDING, expiresAt: { lte: new Date() } }, data: { status: StaffInvitationStatus.EXPIRED, tokenHash: null } });
       return tx.staffInvitation.create({ data: {
         scope, organizationId: scope === StaffInvitationScope.SUPPLIER ? organizationId : null,
         emailNormalized: normalized, email: email.trim(), roleKey, invitedByUserId: actorId,
@@ -136,6 +137,34 @@ export class StaffInvitationsService {
         metadata: { scope: invitation.scope } });
       return { status: "REVOKED" };
     });
+  }
+
+  async resend(actorId: string, invitationId: string) {
+    if (!this.config.get<string>("BREVO_API_KEY") || !this.config.get<string>("STAFF_INVITATION_FROM_EMAIL"))
+      throw new ServiceUnavailableException("Staff invitations are not configured");
+    const token = randomBytes(32).toString("base64url");
+    const url = this.url(token);
+    const row = await this.prisma.$transaction(async tx => {
+      const candidate = await tx.staffInvitation.findUnique({ where: { id: invitationId } });
+      if (!candidate) throw new NotFoundException("Invitation not found");
+      await this.manager(tx, actorId, candidate.scope, candidate.organizationId ?? undefined);
+      await this.allowed(tx, actorId, candidate.scope, candidate.roleKey);
+      await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "StaffInvitation" WHERE "id"=${invitationId}::uuid FOR UPDATE`);
+      const invitation = await tx.staffInvitation.findUniqueOrThrow({ where: { id: invitationId } });
+      if (invitation.status !== StaffInvitationStatus.PENDING || invitation.expiresAt <= new Date())
+        throw new ConflictException("Only an active pending invitation can be resent");
+      if (invitation.sendAttempts >= 5 || invitation.emailedAt && invitation.emailedAt.getTime() > Date.now() - 120_000)
+        throw new ForbiddenException("Resend limit reached; try again later");
+      return tx.staffInvitation.update({ where: { id: invitation.id },
+        data: { tokenHash: digest(token), emailedAt: null, providerMessageId: null,
+          expiresAt: new Date(Date.now() + EXPIRY_MS), sendAttempts: { increment: 1 } } });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    const providerMessageId = await this.mail.sendStaffInvitation(row.email, "Your Ecom staff invitation", url);
+    await this.prisma.staffInvitation.updateMany({ where: { id: row.id, status: StaffInvitationStatus.PENDING, tokenHash: digest(token) },
+      data: { emailedAt: new Date(), providerMessageId } });
+    await this.audit.emit({ actorUserId: actorId, organizationId: row.organizationId ?? undefined,
+      action: "STAFF_INVITATION_RESENT", entityType: "STAFF_INVITATION", entityId: row.id, metadata: { scope: row.scope } });
+    return { id: row.id, delivery: "ACCEPTED_BY_PROVIDER" };
   }
 
   async accept(rawToken: string, password?: string, displayName?: string) {
