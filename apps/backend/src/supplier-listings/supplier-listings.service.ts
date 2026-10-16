@@ -125,7 +125,7 @@ export class SupplierListingsService {
         ? this.overseasFields(supplier, dto.origin ?? existing.origin,
             requestedOrigin === ListingOrigin.LOCAL ? null : dto.deliveryMinDays !== undefined ? dto.deliveryMinDays : existing.deliveryMinDays,
             requestedOrigin === ListingOrigin.LOCAL ? null : dto.deliveryMaxDays !== undefined ? dto.deliveryMaxDays : existing.deliveryMaxDays,
-            dto.overseasOrderable !== undefined ? dto.overseasOrderable : existing.overseasOrderable) : {}) }, include: { product: true, productVariant: true } });
+            requestedOrigin === ListingOrigin.LOCAL ? 0 : dto.overseasOrderable !== undefined ? dto.overseasOrderable : existing.overseasOrderable) : {}) }, include: { product: true, productVariant: true } });
     return this.response(listing);
   }
   private async eligibleForActivation(id: string) {
