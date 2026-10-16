@@ -7,6 +7,7 @@ import { Alert, Button, Card, EmptyState, ErrorState, FormField, Input, Money, P
 import { useSession } from "./session-provider";
 import { SupplierReports } from "./supplier-reports";
 import { SupplierStaffManagement } from "./supplier-staff-management";
+import { SupplierPayoutDestinations } from "./supplier-payout-destinations";
 
 type Props = { organizationId: string; section: string };
 const label = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -22,7 +23,7 @@ export function SupplierWorkspace({ organizationId, section }: Props) {
   if (section === "listings") return <Listings organizationId={organizationId} permissions={permissions} />;
   if (section === "inventory") return <Inventory organizationId={organizationId} permissions={permissions} />;
   if (section === "orders" || section === "fulfilment") return <Orders organizationId={organizationId} permissions={permissions} fulfilmentOnly={section === "fulfilment"} />;
-  if (section === "finance") return <Finance organizationId={organizationId} />;
+  if (section === "finance") return <><Finance organizationId={organizationId} /><SupplierPayoutDestinations key={organizationId} organizationId={organizationId} permissions={permissions} /></>;
   if (section === "returns") return <Returns organizationId={organizationId} />;
   if (section === "warranties") return <Warranties organizationId={organizationId} />;
   if (section === "support") return <Support organizationId={organizationId} permissions={permissions} />;

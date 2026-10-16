@@ -53,6 +53,16 @@ export type PlatformAuditPage = {
   items: Array<{ id: string; actorUserId: string | null; actorType: string; action: string; entityType: string; entityId: string | null; createdAt: string; metadata: Record<string, unknown> }>;
   total: number; page: number; limit: number;
 };
+export type PayoutDestination = {
+  id: string; supplierId: string; type: "BANK" | "MPESA"; currencyCode: string;
+  accountHolderName: string; bankName: string | null; bankCountryCode: string | null;
+  maskedLastFour: string; isActive: boolean; createdAt: string;
+};
+export type RevealedPayoutDestination = PayoutDestination & { iban?: string; accountNumber?: string; swiftBic?: string; mpesaPhone?: string };
+export type CreatePayoutDestination = {
+  type: "BANK" | "MPESA"; currencyCode: string; accountHolderName: string; bankName?: string;
+  bankCountryCode?: string; iban?: string; accountNumber?: string; swiftBic?: string; mpesaPhone?: string;
+};
 export type PlatformSettlement = { id: string; supplierId: string; status: "DRAFT" | "APPROVED" | "PAID" | string; currencyCode: string; netAmount: string; createdAt: string; externalReference?: string | null };
 export type DeliveryOperationsPage = {
   data: Array<{ id: string; orderNumber: string; status: string; paymentStatus: "PAID"; fulfillmentMethod: "DELIVERY" | "PICKUP"; currencyCode: string; total: string; createdAt: string; updatedAt: string; pickupSnapshot: { name: string; city: string } | null; deliveryAddress: { region: string; city: string } | null; supplierOrders: Array<{ id: string; status: string; supplier: { displayName: string } }> }>;
@@ -160,6 +170,16 @@ export const api = {
   supplierOrders: (organizationId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier-orders`),
   supplierOrder: (organizationId: string, orderId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier-orders/${encodeURIComponent(orderId)}`),
   fulfil: (organizationId: string, orderId: string, action: string, input: Record<string, unknown>) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier-orders/${encodeURIComponent(orderId)}/${action}`, { method: "POST", body: JSON.stringify(input) }),
+  supplierPayoutDestinations: (organizationId: string) =>
+    request<PayoutDestination[]>(`/organizations/${encodeURIComponent(organizationId)}/finance/payout-destinations`),
+  createSupplierPayoutDestination: (organizationId: string, input: CreatePayoutDestination) =>
+    request<PayoutDestination>(`/organizations/${encodeURIComponent(organizationId)}/finance/payout-destinations`, { method: "POST", body: JSON.stringify(input) }),
+  disableSupplierPayoutDestination: (organizationId: string, id: string) =>
+    request<{ id: string; isActive: boolean }>(`/organizations/${encodeURIComponent(organizationId)}/finance/payout-destinations/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  platformSupplierPayoutDestinations: (supplierId: string) =>
+    request<PayoutDestination[]>(`/platform/finance/suppliers/${encodeURIComponent(supplierId)}/payout-destinations`),
+  revealSupplierPayoutDestination: (supplierId: string, id: string) =>
+    request<RevealedPayoutDestination>(`/platform/finance/suppliers/${encodeURIComponent(supplierId)}/payout-destinations/${encodeURIComponent(id)}/reveal`, { method: "POST", cache: "no-store" }),
   supplierFinanceBalance: (organizationId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/finance/balance`),
   supplierLedger: (organizationId: string, query: { page?: number; limit?: number } = {}) => {
     const params = new URLSearchParams({ page: String(query.page ?? 1), limit: String(query.limit ?? 25) });
@@ -276,7 +296,7 @@ export const api = {
   setDeliveryQuote: (id: string, input: Record<string, unknown>) => request<any>(`/platform/delivery/quotes/${encodeURIComponent(id)}/quote`, { method: "POST", body: JSON.stringify(input) }),
   platformFinanceSettlements: () => request<PlatformSettlement[]>("/platform/settlements"),
   platformFinanceSupplierBalance: (supplierId: string) => request<{ supplierId: string; balances: Array<{ currencyCode: string; balance: string }> }>(`/platform/finance/suppliers/${encodeURIComponent(supplierId)}/balance`),
-  createPlatformSettlement: (supplierId: string, currencyCode: string) => request<PlatformSettlement>(`/platform/suppliers/${encodeURIComponent(supplierId)}/settlements`, { method: "POST", body: JSON.stringify({ currencyCode }) }),
+  createPlatformSettlement: (supplierId: string, currencyCode: string, payoutDestinationId?: string) => request<PlatformSettlement>(`/platform/suppliers/${encodeURIComponent(supplierId)}/settlements`, { method: "POST", body: JSON.stringify({ currencyCode, payoutDestinationId }) }),
   approvePlatformSettlement: (id: string) => request<unknown>(`/platform/settlements/${encodeURIComponent(id)}/approve`, { method: "POST" }),
   markPlatformSettlementPaid: (id: string, externalReference: string, note?: string) => request<unknown>(`/platform/settlements/${encodeURIComponent(id)}/mark-paid`, { method: "POST", body: JSON.stringify({ externalReference, note: note || undefined }) }),
   platformRefundRequests: () => request<any[]>("/platform/refund-requests"),
