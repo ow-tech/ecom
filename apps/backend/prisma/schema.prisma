@@ -344,6 +344,7 @@ model User {
   updatedAt                DateTime                     @updatedAt
   credential               Credential?
   sessions                 Session[]
+  passwordResetToken       PasswordResetToken?
   memberships              OrganizationMembership[]
   platformRoles            PlatformRoleAssignment[]
   approvedSuppliers        Supplier[]                   @relation("SupplierApprovedBy")
@@ -392,6 +393,26 @@ model Session {
   createdAt  DateTime  @default(now())
   lastSeenAt DateTime?
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A single short-lived, single-use recovery challenge. No raw token is stored.
+model PasswordResetToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @unique @db.Uuid
+  tokenHash  String   @unique
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([expiresAt])
+}
+
+// Cross-replica authentication throttle; keys are SHA-256 digests, not emails/IPs.
+model AuthLoginThrottle {
+  key             String   @id
+  failures        Int      @default(0)
+  windowStartedAt DateTime @default(now())
+  blockedUntil    DateTime?
+  updatedAt       DateTime @updatedAt
 }
 
 model Organization {
