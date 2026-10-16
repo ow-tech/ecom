@@ -19,7 +19,7 @@ export class OrganizationMembersService {
     const manager = await tx.organizationMembership.findFirst({
       where: { userId: actorId, organizationId, status: MembershipStatus.ACTIVE,
         organization: { status: "ACTIVE" },
-        roles: { some: { role: { scope: RoleScope.ORGANIZATION, permissions: { some: { permission: { key: "organization.members.manage" } } } } } },
+        roles: { some: { role: { scope: RoleScope.ORGANIZATION, permissions: { some: { permission: { key: "organization.staff.manage" } } } } } },
       }, select: { id: true },
     });
     if (!manager) throw new ForbiddenException("Organization staff management denied");
@@ -55,7 +55,7 @@ export class OrganizationMembersService {
     }).then(rows => rows.map(row => ({ id: row.id, organizationId: row.organizationId, organizationName: row.organization.name, roleKey: row.roles[0]?.role.key ?? null })));
   }
   async invite(actorId: string, organizationId: string, email: string, roleKey: string) {
-    await this.rbac.organizationContext(actorId, organizationId, "organization.members.manage");
+    await this.rbac.organizationContext(actorId, organizationId, "organization.staff.manage");
     try {
       return await this.prisma.$transaction(async tx => {
         await this.managed(tx, actorId, organizationId);
@@ -92,7 +92,7 @@ export class OrganizationMembersService {
     return { status: "ACTIVE", organizationId: membership.organizationId };
   }
   async changeRole(actorId: string, organizationId: string, membershipId: string, roleKey: string) {
-    await this.rbac.organizationContext(actorId, organizationId, "organization.members.manage");
+    await this.rbac.organizationContext(actorId, organizationId, "organization.staff.manage");
     return this.prisma.$transaction(async tx => {
       await this.managed(tx, actorId, organizationId);
       const role = await this.role(tx, roleKey);
@@ -106,7 +106,7 @@ export class OrganizationMembersService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
   async remove(actorId: string, organizationId: string, membershipId: string) {
-    await this.rbac.organizationContext(actorId, organizationId, "organization.members.manage");
+    await this.rbac.organizationContext(actorId, organizationId, "organization.staff.manage");
     return this.prisma.$transaction(async tx => {
       await this.managed(tx, actorId, organizationId);
       const member = await tx.organizationMembership.findFirst({ where: { id: membershipId, organizationId },
