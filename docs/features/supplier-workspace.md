@@ -80,3 +80,7 @@ and no code persistence in storage, URL, or logging.
 BROWSER_VERIFICATION_PENDING_ENVIRONMENT: authenticated viewport journeys at
 375px, 768px, and 1280px remain release verification debt; no browser runtime was
 introduced by this task.
+
+## Staff and permissions
+
+The Supplier Workspace now has `/staff`, gated by `organization.members.read` and implemented through [supplier-staff-management.md](supplier-staff-management.md). Existing inventory, fulfilment and finance views continue to depend on backend permissions, not a client-selected role.

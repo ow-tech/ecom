@@ -27,3 +27,7 @@ Run the current GitHub `ecom-verification.yml` on `dev`, including seed and a di
 
 ## Safe continuation
 Do not duplicate membership authorization in the UI. Keep `RbacService.organizationContext` authoritative. Next supplier scope: server-derived reporting, segregated by `orders.read`, `inventory.read`, and `finance.read`.
+
+## User interface
+
+Owner/managers with `organization.members.read` see `/supplier/:organizationId/staff`. Only `organization.members.manage` reveals invite/change/remove controls; owners and own memberships cannot be removed or delegated. The recipient accepts from `/account/invitations` and `SessionProvider.refresh` retrieves the newly active organization permissions. API membership state remains authoritative.

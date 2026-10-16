@@ -32,6 +32,12 @@ Status: Implemented
 
 Feature documentation: [supplier-domain.md](features/supplier-domain.md)
 
+## Supplier Staff & Permissions
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Registered staff invitation, authenticated acceptance, least-privilege roles, revocation, role changes, and supplier/account UI. CI and responsive browser verification pending.
+
+Feature documentation: [supplier-staff-management.md](features/supplier-staff-management.md)
+
 ## Supplier Workspace
 
 Status: Implemented. Overview HTTP tenancy/permission/count proof and secure-pickup jsdom interaction proof are complete; authenticated responsive browser verification remains pending.

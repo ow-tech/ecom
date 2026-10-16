@@ -1,3 +1,9 @@
+export type OrganizationStaff = {
+  id: string; status: "INVITED" | "ACTIVE" | "SUSPENDED" | "REMOVED"; createdAt: string;
+  roleKey: string | null; user: { id: string; email: string; displayName: string | null };
+};
+export type OrganizationStaffList = { members: OrganizationStaff[]; roles: Array<{ key: string; name: string }> };
+export type OrganizationInvitation = { id: string; organizationId: string; organizationName: string; roleKey: string | null };
 export type OrganizationContext = { id: string; name: string; slug: string; permissions: string[] };
 export type Session = { id: string; email: string; displayName: string | null; organizations: OrganizationContext[]; platformPermissions: string[] };
 export type CatalogueCategory = { id: string; name: string; slug: string; description: string | null; parentId: string | null };
@@ -95,6 +101,12 @@ export const api = {
   resetPassword: (token: string, newPassword: string) => request<{ status: string }>("/auth/password/reset", { method: "POST", body: JSON.stringify({ token, newPassword }) }),
   customerProfile: () => request<CustomerProfile>("/customer/profile"),
   updateCustomerProfile: (input: Partial<Pick<CustomerProfile, "firstName" | "lastName" | "phone" | "alternativePhone">>) => request<CustomerProfile>("/customer/profile", { method: "PATCH", body: JSON.stringify(input) }),
+  organizationStaff: (organizationId: string) => request<OrganizationStaffList>(`/organizations/${encodeURIComponent(organizationId)}/members`),
+  inviteOrganizationStaff: (organizationId: string, input: { email: string; roleKey: string }) => request<{ id: string; status: "INVITED"; roleKey: string }>(`/organizations/${encodeURIComponent(organizationId)}/members/invite`, { method: "POST", body: JSON.stringify(input) }),
+  changeOrganizationStaffRole: (organizationId: string, id: string, roleKey: string) => request<unknown>(`/organizations/${encodeURIComponent(organizationId)}/members/${encodeURIComponent(id)}/role`, { method: "PATCH", body: JSON.stringify({ roleKey }) }),
+  removeOrganizationStaff: (organizationId: string, id: string) => request<unknown>(`/organizations/${encodeURIComponent(organizationId)}/members/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  organizationInvitations: () => request<OrganizationInvitation[]>("/organization-invitations"),
+  acceptOrganizationInvitation: (id: string) => request<{ status: string; organizationId: string }>(`/organization-invitations/${encodeURIComponent(id)}/accept`, { method: "POST" }),
   supplier: (organizationId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier`),
   supplierOverview: (organizationId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier/overview`),
   updateSupplier: (organizationId: string, input: Record<string, unknown>) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/supplier`, { method: "PATCH", body: JSON.stringify(input) }),
