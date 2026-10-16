@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { Alert, Button, Card, EmptyState, ErrorState, FormField, Input, SectionHeader, Select, Skeleton, StatusBadge } from "./ui";
 
@@ -24,7 +24,9 @@ export function PlatformAfterSales({ permissions }: { permissions: string[] }) {
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [choice, setChoice] = useState<Choice>();
-  const load = useCallback(async () => {
+  const requestSequence = useRef(0);
+  const load = useCallback(async (): Promise<boolean> => {
+    const current = ++requestSequence.current;
     setLoading(true); setError(undefined);
     try {
       const [r, t, w] = await Promise.all([
@@ -32,15 +34,22 @@ export function PlatformAfterSales({ permissions }: { permissions: string[] }) {
         returnRead ? api.platformReturns() : Promise.resolve([]),
         warrantyRead ? api.platformWarranties() : Promise.resolve([]),
       ]);
+      if (current !== requestSequence.current) return false;
       setRefunds(r); setReturns(t); setWarranties(w);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not load after-sales operations."); }
-    finally { setLoading(false); }
+      return true;
+    } catch (cause) {
+      if (current === requestSequence.current) {
+        setRefunds([]); setReturns([]); setWarranties([]);
+        setError(cause instanceof Error ? cause.message : "Could not load after-sales operations.");
+      }
+      return false;
+    } finally { if (current === requestSequence.current) setLoading(false); }
   }, [refundRead, returnRead, warrantyRead]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); return () => { requestSequence.current += 1; }; }, [load]);
   async function run(id: string, action: () => Promise<unknown>, success: string) {
     if (busy) return;
     setBusy(id); setError(undefined); setNotice(undefined);
-    try { await action(); setChoice(undefined); await load(); setNotice(success); }
+    try { await action(); setChoice(undefined); if (await load()) setNotice(success); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not perform this action."); }
     finally { setBusy(undefined); }
   }

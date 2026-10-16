@@ -64,6 +64,15 @@ describe("platform after-sales controls", () => {
     await userEvent.click(screen.getByRole("button", { name: "Confirm resolution" }));
     await waitFor(() => expect(mocks.api.warrantyAction).toHaveBeenCalledWith("warranty-a", "resolve", expect.objectContaining({ resolution: "NO_FAULT_FOUND" })));
   });
+  it("does not claim server state refresh succeeded when the post-action read fails", async () => {
+    mocks.api.platformReturns.mockResolvedValueOnce([{ id: "return-reload", status: "REQUESTED" }])
+      .mockRejectedValueOnce(new Error("Read temporarily unavailable"));
+    render(<PlatformAfterSales permissions={["platform.returns.read", "platform.returns.manage"]} />);
+    await screen.findByRole("button", { name: "Approve return" });
+    await userEvent.click(screen.getByRole("button", { name: "Approve return" }));
+    expect(await screen.findByText(/Read temporarily unavailable/)).toBeTruthy();
+    expect(screen.queryByText(/Action completed\. Current server status refreshed/)).toBeNull();
+  });
   it("retains current state and shows an error if an action fails", async () => {
     mocks.api.platformReturns.mockResolvedValue([{ id: "return-a", status: "REQUESTED" }]);
     mocks.api.returnAction.mockRejectedValueOnce(new Error("Transition rejected"));
