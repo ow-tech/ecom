@@ -31,7 +31,7 @@ export class PaymentReconciliationService {
   private async lockIfUnresolved(tx: Prisma.TransactionClient, paymentId: string): Promise<boolean> {
     await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Payment" WHERE "id" = ${paymentId}::uuid FOR UPDATE`);
     const current = await tx.payment.findUniqueOrThrow({ where: { id: paymentId }, select: { status: true } });
-    return ![PaymentStatus.SUCCEEDED, PaymentStatus.FAILED, PaymentStatus.CANCELLED].includes(current.status);
+    return current.status !== PaymentStatus.SUCCEEDED && current.status !== PaymentStatus.FAILED && current.status !== PaymentStatus.CANCELLED;
   }
 
   async reconcile(paymentId: string, reconciliationActorUserId?: string) {
