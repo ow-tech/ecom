@@ -66,3 +66,7 @@ See `supplier-business-management-ui.md` for the UI contract.
 ## Platform return and warranty management UI
 
 The platform after-sales section drives existing state transitions, completes returns with one of REFUND/REPLACEMENT/NO_ACTION, and resolves warranties with REPAIR/REPLACEMENT/REFUND/NO_FAULT_FOUND. The UI cannot issue a provider refund directly from a return or claim; the canonical refund-request lifecycle remains authoritative.
+
+## Customer request interface
+
+`/account/orders/:orderId/after-sales` is the authenticated customer UI for item-scoped returns and warranty claims, with read-only request statuses. The NestJS service remains the authority for delivered-history, warranty eligibility and reserved return quantity; this interface does not create a new transition authority. See [customer-aftersales-ui.md](customer-aftersales-ui.md).

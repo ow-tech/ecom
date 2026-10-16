@@ -46,3 +46,7 @@ output projection; no provider credentials or raw authorization evidence is retu
 ## Platform refund execution UI
 
 Platform after-sales provides an explicitly confirmed `POST /platform/refunds/:id/execute` for CREATED provider refunds (not unresolved replays) and evidence reconciliation for UNKNOWN/PENDING. Real Paystack REFUND execution remains an external release-verification gate.
+
+## Customer request interface
+
+Customers can now request an item-specific refund and see its lifecycle in `/account/orders/:orderId/after-sales`. The browser supplies item ID, quantity and reason only; money remains server-derived, and payment-provider execution remains platform-only. See [customer-aftersales-ui.md](customer-aftersales-ui.md).

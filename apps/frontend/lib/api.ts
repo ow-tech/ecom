@@ -47,7 +47,9 @@ export type CheckoutPreview = { currencyCode: string; subtotal: string; delivery
 export type OrderStatus = "PENDING_PAYMENT" | "AWAITING_DELIVERY_QUOTE" | "PAYMENT_CONFIRMED" | "PROCESSING" | "READY_FOR_PICKUP" | "OUT_FOR_DELIVERY" | "DELIVERED" | "PAYMENT_REVIEW" | "CANCELLED" | "EXPIRED";
 export type OrderPaymentStatus = "UNPAID" | "PAID" | "PAID_REVIEW";
 export type PaymentStatus = "INITIALIZATION_PENDING" | "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "UNKNOWN";
-export type CustomerOrderItem = { id: string; productNameSnapshot: string; variantNameSnapshot: string | null; supplierNameSnapshot: string; supplierSkuSnapshot: string | null; quantity: number; unitPrice: string; lineTotal: string; currencyCode: string };
+export type AfterSalesRequest = { id: string; status: string; orderId: string; requestedAmount?: string | null; items?: Array<{ orderItemId: string; quantity: number }> };
+export type WarrantyClaimSummary = { id: string; status: string; orderItemId: string; issueDescription: string; createdAt: string };
+export type CustomerOrderItem = { id: string; productNameSnapshot: string; variantNameSnapshot: string | null; supplierNameSnapshot: string; supplierSkuSnapshot: string | null; quantity: number; unitPrice: string; lineTotal: string; currencyCode: string; warrantyDaysSnapshot?: number | null };
 export type CustomerOrder = { id: string; orderNumber: string; status: OrderStatus; paymentStatus: OrderPaymentStatus; currencyCode: string; subtotal: string; deliveryFee: string; pickupFee: string; total: string; fulfillmentMethod: "DELIVERY" | "PICKUP"; createdAt: string; items: CustomerOrderItem[]; statusHistory: Array<{ id: string; newStatus: OrderStatus; publicMessage: string | null; createdAt: string }> };
 export type CustomerOrderListItem = Omit<CustomerOrder, "items" | "statusHistory"> & { items: Array<Pick<CustomerOrderItem, "productNameSnapshot" | "variantNameSnapshot" | "quantity" | "unitPrice" | "lineTotal">> };
 export type CustomerTracking = { orderNumber: string; paymentStatus: OrderPaymentStatus; fulfillmentMethod: "DELIVERY" | "PICKUP"; currentStatus: OrderStatus; quote: { status: string; amount: string | null; currencyCode: string; expiresAt: string | null } | null; pickup: { name: string; address: string; city: string; region: string; phone: string | null; pickupFee: string } | null; delivery: { recipientName: string; countryCode: string; region: string; city: string; estate: string | null; street: string | null; building: string | null; houseNumber: string | null; landmark: string | null } | null; supplierProgress: Array<{ supplierDisplayName: string; status: string }>; timeline: Array<{ timestamp: string; status: string; message: string | null; supplierDisplayName: string | null }> };
@@ -174,6 +176,15 @@ export const api = {
   previewCheckout: (input: { fulfillmentMethod: typeof checkoutFulfillmentMethod.DELIVERY; addressId: string } | { fulfillmentMethod: typeof checkoutFulfillmentMethod.PICKUP; pickupPointId: string }) => request<CheckoutPreview>("/customer/checkout/preview", { method: "POST", body: JSON.stringify(input) }),
   prepareCheckout: (input: { fulfillmentMethod: typeof checkoutFulfillmentMethod.DELIVERY; addressId: string } | { fulfillmentMethod: typeof checkoutFulfillmentMethod.PICKUP; pickupPointId: string }, idempotencyKey: string) => request<CheckoutSummary>("/customer/checkout/prepare", { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify(input) }),
   customerOrders: () => request<CustomerOrderListItem[]>("/customer/orders"),
+  customerRefundRequests: (orderId: string) => request<AfterSalesRequest[]>(`/customer/orders/${encodeURIComponent(orderId)}/refund-requests`),
+  createCustomerRefundRequest: (orderId: string, input: { reasonCode: string; reasonText?: string; items: Array<{ orderItemId: string; quantity: number }> }) =>
+    request<AfterSalesRequest>(`/customer/orders/${encodeURIComponent(orderId)}/refund-requests`, { method: "POST", body: JSON.stringify(input) }),
+  customerReturns: (orderId: string) => request<AfterSalesRequest[]>(`/customer/orders/${encodeURIComponent(orderId)}/returns`),
+  createCustomerReturn: (orderId: string, input: { reasonCode: string; reasonText?: string; items: Array<{ orderItemId: string; quantity: number }> }) =>
+    request<AfterSalesRequest>(`/customer/orders/${encodeURIComponent(orderId)}/returns`, { method: "POST", body: JSON.stringify(input) }),
+  customerWarranties: () => request<WarrantyClaimSummary[]>("/customer/warranties"),
+  createCustomerWarranty: (input: { orderItemId: string; issueDescription: string }) =>
+    request<WarrantyClaimSummary>("/customer/warranties", { method: "POST", body: JSON.stringify(input) }),
   customerOrder: (orderId: string) => request<CustomerOrder>(`/customer/orders/${encodeURIComponent(orderId)}`),
   customerTracking: (orderId: string) => request<CustomerTracking>(`/customer/orders/${encodeURIComponent(orderId)}/tracking`),
   initializePayment: (orderId: string, idempotencyKey: string, method: "CARD" | "MPESA") => request<PaymentInitialization>(`/customer/orders/${encodeURIComponent(orderId)}/payments/initialize`, { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify({ method }) }),

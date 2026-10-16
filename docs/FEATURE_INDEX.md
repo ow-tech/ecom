@@ -219,6 +219,12 @@ multi-supplier checkout, deterministic Paystack evidence, fulfilment, tracking,
 support privacy, and cross-supplier denial. Live browser, Paystack sandbox, and
 external image delivery remain separate release verification.
 
+## Customer After-Sales Requests
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Owned delivered-order UI integrates refunds, returns and warranty requests with the existing canonical backend and read-only status histories. Focused frontend and existing backend real HTTP/PostgreSQL tests; live browser/provider/physical logistics verification pending.
+
+Feature documentation: [customer-aftersales-ui.md](features/customer-aftersales-ui.md)
+
 ## Customer Support UI
 
 Status: Implemented; live Nest HTTP/PostgreSQL verification complete. Browser responsive verification pending.
