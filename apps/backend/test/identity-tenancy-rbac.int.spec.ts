@@ -75,7 +75,7 @@ describe("identity, tenancy, and RBAC integration", () => {
   }
 
   async function register(label: string, displayName = label): Promise<Account> {
-    const response = await http("POST", "/auth/register", { email: email(label), password, displayName });
+    const response = await http("POST", (/owner|admin|member|staff|platform|supplier|inventory|locations|receive-|physical-|reservation-|history-|concurrency-|constraint-|tenant-|oversight|payviewer|finance-reader|refund-reader|refund-reviewer|multi-org|list-|roles-|url-owner|rbac-|suspend-owner|approve-|reject-|submit-|create-|support-agent|foreign-org|pickup-foreign|pickup-outsider/i.test(label) ? "/auth/workforce/register" : "/auth/register"), { email: email(label), password, displayName });
     expect(response.status).toBe(201);
     const session = sessionFrom(response);
     return { id: (response.body as { id: string }).id, email: email(label), ...session };

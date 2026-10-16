@@ -38,7 +38,7 @@ describe("customer cart checkout and order core integration", () => {
   }
 
   async function account(label: string): Promise<Account> {
-    const response = await http("POST", "/auth/register", { email: email(label), password, displayName: label });
+    const response = await http("POST", (/owner|admin|member|staff|platform|supplier|inventory|locations|receive-|physical-|reservation-|history-|concurrency-|constraint-|tenant-|oversight|payviewer|finance-reader|refund-reader|refund-reviewer|multi-org|list-|roles-|url-owner|rbac-|suspend-owner|approve-|reject-|submit-|create-|support-agent|foreign-org|pickup-foreign|pickup-outsider/i.test(label) ? "/auth/workforce/register" : "/auth/register"), { email: email(label), password, displayName: label });
     expect(response.status).toBe(201);
     return { id: response.body.id, cookie: (response.headers["set-cookie"] as string[])[0].split(";", 1)[0] };
   }
