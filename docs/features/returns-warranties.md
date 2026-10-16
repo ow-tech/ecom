@@ -62,3 +62,7 @@ The Supplier Workspace uses the supplier-filtered return and warranty projection
 as read-only operational views. It provides no return/warranty transition or refund
 controls; those remain the existing platform-authorized canonical lifecycle seams.
 See `supplier-business-management-ui.md` for the UI contract.
+
+## Platform return and warranty management UI
+
+The platform after-sales section drives existing state transitions, completes returns with one of REFUND/REPLACEMENT/NO_ACTION, and resolves warranties with REPAIR/REPLACEMENT/REFUND/NO_FAULT_FOUND. The UI cannot issue a provider refund directly from a return or claim; the canonical refund-request lifecycle remains authoritative.

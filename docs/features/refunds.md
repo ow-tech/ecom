@@ -42,3 +42,7 @@ output projection; no provider credentials or raw authorization evidence is retu
 | INV-REF-05 | refund status/evidence | `derives and protects refund quantities...` | PASS | Unknown state is reconciled without blind resubmission. |
 | INV-REF-06 | `RefundEvent` | `derives and protects refund quantities...` | PASS | Provider evidence is persisted through the canonical path. |
 | INV-REF-07 | historical finance posting | `derives and protects refund quantities...` | PASS | One proportional supplier debit is asserted. |
+
+## Platform refund execution UI
+
+Platform after-sales provides an explicitly confirmed `POST /platform/refunds/:id/execute` for CREATED provider refunds (not unresolved replays) and evidence reconciliation for UNKNOWN/PENDING. Real Paystack REFUND execution remains an external release-verification gate.

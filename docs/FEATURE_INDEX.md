@@ -225,6 +225,12 @@ Status: Implemented; live Nest HTTP/PostgreSQL verification complete. Browser re
 
 Feature documentation: [customer-support-ui.md](features/customer-support-ui.md)
 
+## Platform After-Sales Lifecycle Controls
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Full permission-aware platform refund review/execution/reconciliation, return-state transitions and warranty-resolution UI using canonical backend services. Frontend and provider-browser verification pending.
+
+Feature documentation: [platform-aftersales-operations.md](features/platform-aftersales-operations.md)
+
 ## Platform Commerce Administration UI
 
 Status: Implemented UI and canonical contract wiring. Cross-supplier listing

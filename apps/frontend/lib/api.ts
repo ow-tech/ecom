@@ -222,6 +222,8 @@ export const api = {
   platformDeliveryQuotes: () => request<any[]>("/platform/delivery/quotes"),
   setDeliveryQuote: (id: string, input: Record<string, unknown>) => request<any>(`/platform/delivery/quotes/${encodeURIComponent(id)}/quote`, { method: "POST", body: JSON.stringify(input) }),
   platformRefundRequests: () => request<any[]>("/platform/refund-requests"),
+  executePlatformRefund: (refundId: string) => request<any>(`/platform/refunds/${encodeURIComponent(refundId)}/execute`, { method: "POST" }),
+  reconcilePlatformRefund: (refundId: string) => request<any>(`/platform/refunds/${encodeURIComponent(refundId)}/reconcile`, { method: "POST" }),
   refundAction: (id: string, action: "approve" | "reject", reason?: string) => request<any>(`/platform/refund-requests/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify(reason ? { reason } : {}) }),
   platformReturns: () => request<any[]>("/platform/returns"),
   returnAction: (id: string, action: string, input: Record<string, unknown> = {}) => request<any>(`/platform/returns/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify(input) }),

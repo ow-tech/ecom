@@ -66,3 +66,7 @@ The full backend regression is not green: the post-order finance suite exposed a
 `P2034` outbox conflict and a history-count mismatch. Safe continuation is to
 stabilize that independent regression, then run browser checks at 375px, 768px,
 and 1280px.
+
+## After-sales operations client
+
+`/platform/aftersales` now renders a permission-aware platform client of canonical refund requests and Paystack refund evidence, return lifecycle commands, and warranty resolution. It exposes no manual mark-paid or inventory restock shortcut; see [platform-aftersales-operations.md](platform-aftersales-operations.md).
