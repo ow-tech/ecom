@@ -12,7 +12,7 @@
 | 2 | Supplier staff | Supplier-admin invitations and role management | Registered-user, owner-managed in-app invitations exist; **new-email invites and admin delegation missing** | Verified email invitations, owner/admin delegable roles, revoke/resend/accept flows with isolated sensitive privileges |
 | 3 | Platform hierarchy | Head admin and platform staff management | Seeded super admin exists; **head-admin management missing** | Protected super/head roles, restricted platform invitations, role directory and audit |
 | 4 | 13 | Notifications and background jobs | **PARTIAL** — durable outbox, lease recovery, customer inbox and platform job-state UI CI-tested | Reliable provider email/SMS, scheduled workers and reservation expiry, delivery/retry monitoring and alerts |
-| 5 | 15 | Overseas sourcing | **MISSING** dedicated module | Request → quote → payment → supplier purchase → overseas logistics/customs → delivery/reconciliation |
+| 5 | 15 | Overseas-shipped supplier listings | **PARTIAL** on draft PR #2 | Super-admin supplier capability, listing ETA/orderable stock, checkout reservation, UI and full security/regression verification |
 | 6 | 16 | CRM | **MISSING** dedicated module; customers/orders/support exist | Lead/customer relationship timeline, sales pipeline, follow-ups, assignments, segments, scoped outreach |
 | 7 | 17 | Accounting and expense management | **MISSING** general accounting; supplier commission/settlement ledgers exist | Chart of accounts, income/expenses, journals, payables/receivables, reconciliation and statements |
 | 8 | 18 | Reports and analytics | **PARTIAL** supplier 30-day metrics and platform operational counts | Authorized supplier/platform financial, sourcing, sales, stock and customer dashboards + exports |
@@ -65,11 +65,15 @@
 
 **Acceptance:** real messages reach controlled test recipients; failure/timeout/replay are handled; no user sees another user's notice; worker crash/lease expiration and alerting are proven in staging; no false success statuses.
 
-## Phase 5 — Overseas sourcing (15)
+## Phase 5 — Overseas-shipped supplier listings (15)
 
-**Status:** New module required. Define customer sourcing request (item URL/description, origin/quantity), staff evaluation, versioned quote and fees, customer approval, payment obligations, overseas supplier purchase, freight milestones, landed costs/customs/taxes, shipment manifests, arrival/clearance, local delivery/pickup, refunds/cancellations and exception escalation.
+**Revised business contract:** NOT a sourcing-request, price-quotation or separate purchase workflow. Products are listed normally by suppliers; the displayed merchandise price is final. Overseas-labelled offers have a longer stated delivery window. Any separate delivery/pickup fee is still disclosed before payment. **Only the platform super admin** can grant/revoke an individual supplier's overseas-shipping capability.
 
-**Acceptance:** one request completes end-to-end with tenant-aware staff/admin/customer views, real state histories, accurate quoted vs actual costs, payment/reconciliation safety and traceability. Sourcing must reuse canonical customer and payment contracts where applicable.
+**Implementation on draft PR #2:** `Supplier.overseasEnabled` grant/revoke with audit and role guard; listing-level LOCAL/OVERSEAS origin, promised delivery range, orderable capacity distinct from physical inventory, atomic overseas reservation allocation, payment consumption, cancellation/expiry release, immutable order-item origin/ETA snapshots, public catalogue and cart/checkout disclosures, supplier management and platform approval UI. Existing local physical inventory is not reclassified as overseas capacity.
+
+**Status: IMPLEMENTED_VERIFICATION_PARTIAL.** New migration, tests, builds, staging concurrency proofs and authenticated browser verification have not yet passed. Do not merge/deploy without verifying real PostgreSQL payment settlement, partial failure, mixed-cart expiry, supplier suspension, capability revocation, quantity exhaustion and rollback/retry, and all local-stock regressions. Orderable quotas must be updated explicitly by suppliers; paid commitments do not create imaginary physical inventory.
+
+**Acceptance:** unapproved suppliers cannot offer overseas listings; a super admin can grant/revoke capability; paid customer order captures the exact item price, classification and delivery estimate; overseas quantity cannot oversell or double-consume; retries and TTL release follow canonical payment/booking authority; local checkout behavior remains unchanged.
 
 ## Phase 6 — CRM (16)
 
