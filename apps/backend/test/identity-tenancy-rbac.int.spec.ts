@@ -192,10 +192,10 @@ describe("identity, tenancy, and RBAC integration", () => {
   it("uses hashed single-use recovery tokens and rejects replay after reset", async () => {
     const account = await register("security-recovery");
     const originalFetch = global.fetch;
-    const env = { api: process.env.RESEND_API_KEY, from: process.env.ACCOUNT_EMAIL_FROM, url: process.env.ACCOUNT_PUBLIC_URL };
+    const env = { api: process.env.BREVO_API_KEY, from: process.env.BREVO_FROM_EMAIL, url: process.env.ACCOUNT_PUBLIC_URL };
     const messages: string[] = [];
-    process.env.RESEND_API_KEY = "test-only";
-    process.env.ACCOUNT_EMAIL_FROM = "noreply@example.test";
+    process.env.BREVO_API_KEY = "test-only";
+    process.env.BREVO_FROM_EMAIL = "noreply@example.test";
     process.env.ACCOUNT_PUBLIC_URL = "http://localhost:3100";
     global.fetch = jest.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       messages.push(String(init?.body ?? ""));
@@ -222,8 +222,8 @@ describe("identity, tenancy, and RBAC integration", () => {
       expect((await http("POST", "/auth/login", { email: account.email, password: "NewVeryLongPasswordForRecovery!34" })).status).toBe(201);
     } finally {
       global.fetch = originalFetch;
-      if (env.api === undefined) delete process.env.RESEND_API_KEY; else process.env.RESEND_API_KEY = env.api;
-      if (env.from === undefined) delete process.env.ACCOUNT_EMAIL_FROM; else process.env.ACCOUNT_EMAIL_FROM = env.from;
+      if (env.api === undefined) delete process.env.BREVO_API_KEY; else process.env.BREVO_API_KEY = env.api;
+      if (env.from === undefined) delete process.env.BREVO_FROM_EMAIL; else process.env.BREVO_FROM_EMAIL = env.from;
       if (env.url === undefined) delete process.env.ACCOUNT_PUBLIC_URL; else process.env.ACCOUNT_PUBLIC_URL = env.url;
     }
   });
