@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
     supplierProductSelection: vi.fn(), supplierListings: vi.fn(), createSupplierListing: vi.fn(),
     inventoryLocations: vi.fn(), stock: vi.fn(), removeStock: vi.fn(),
     fulfil: vi.fn(), supplierOrder: vi.fn(),
-    supplierFinanceBalance: vi.fn(), supplierLedger: vi.fn(), supplierCommissions: vi.fn(), supplierSettlements: vi.fn(), supplierSettlement: vi.fn(),
+    supplierCommissionPolicy: vi.fn(), supplierFinanceBalance: vi.fn(), supplierLedger: vi.fn(), supplierCommissions: vi.fn(), supplierSettlements: vi.fn(), supplierSettlement: vi.fn(),
   },
   session: null as { organizations: Array<{ id: string; permissions: string[] }> } | null,
 }));
@@ -64,6 +64,7 @@ describe("SupplierWorkspace", () => {
     let resolveA!: (value: { data: any[]; page: number; limit: number; total: number }) => void;
     const delayedA = new Promise<{ data: any[]; page: number; limit: number; total: number }>((resolve) => { resolveA = resolve; });
     api.supplierLedger.mockImplementation((id: string, query: { page: number }) => id === "a" && query.page === 1 ? delayedA : Promise.resolve({ data: [{ id: `${id}-${query.page}`, createdAt: "2040-01-01T00:00:00.000Z", type: "SUPPLIER_EARNING", referenceType: "TEST", referenceId: "r", amountSigned: "7.00", currencyCode: "USD" }], page: query.page, limit: 25, total: query.page === 1 ? 26 : 26 }));
+    api.supplierCommissionPolicy.mockResolvedValue({ supplierId: "supplier-test", rate: "0.100000", defaultRate: "0.100000", source: "ENV_DEFAULT", history: [] });
     api.supplierCommissions.mockResolvedValue([]); api.supplierSettlements.mockResolvedValue([]);
     const view = render(<SupplierWorkspace organizationId="a" section="finance" />);
     view.rerender(<SupplierWorkspace organizationId="b" section="finance" />);
