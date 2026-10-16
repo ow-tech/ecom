@@ -33,7 +33,6 @@ describe("customer-owned after-sales workflow", () => {
   it("submits one owned return item with reason/quantity but never price", async () => {
     render(<CustomerAfterSales />);
     expect(await screen.findByText("Order EC-OWNED")).toBeTruthy();
-    await userEvent.type(screen.getByLabelText("Quantity"), ""); // deliberate no-op: preserve default
     await userEvent.selectOptions(screen.getByLabelText("Reason"), "DEFECTIVE");
     await userEvent.click(screen.getByRole("button", { name: "Submit return request" }));
     await waitFor(() => expect(mocks.api.createCustomerReturn).toHaveBeenCalledWith("owned-order",
