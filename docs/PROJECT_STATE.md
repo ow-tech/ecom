@@ -28,6 +28,10 @@ An opt-in persistent QA workflow is available through `pnpm qa:up`. It uses an
 isolated Compose project/database (`ecom-qa` / `ecom_local_qa`), guarded,
 idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LOCAL.md).
 
+## Next planned identity/administration delivery
+
+Customer/admin email separation, email-based staff onboarding and the platform head-admin management interface are NOT IMPLEMENTED. Follow [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md) in order: conflict preflight and account-audience boundaries → supplier admin delegation/invitation email → super/head-admin hierarchy and platform staff UI. Do not grant `organization.members.manage` broadly to supplier admins; it currently also controls sensitive payout-destination writes.
+
 ## Current feature delivery — 2026-10-16
 
 - Customer account profile and security: `/account/profile`, `/account/security`, `/forgot-password`, `/reset-password`; existing owned profile API, password change, single-use hashed reset tokens, session revocation and cross-replica throttling. Recovery email requires configured Resend sender; live email/browser validation remains.
