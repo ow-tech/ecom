@@ -113,11 +113,18 @@ export class SupplierListingsService {
     const supplier = await this.supplierForOrganization(userId, organizationId, "catalogue.listings.update");
     const existing = await this.prisma.supplierListing.findFirst({ where: { id: listingId, supplierId: supplier.id } });
     if (!existing) throw new NotFoundException("Supplier listing not found");
+    const requestedOrigin = dto.origin ?? existing.origin;
+    if (requestedOrigin === ListingOrigin.LOCAL &&
+      (existing.overseasReserved > 0 || existing.overseasCommitted > 0))
+      throw new ConflictException("Overseas commitments exist; keep this listing overseas or create a separate local offer");
+    if (requestedOrigin === ListingOrigin.OVERSEAS &&
+      (dto.overseasOrderable ?? existing.overseasOrderable) < existing.overseasReserved + existing.overseasCommitted)
+      throw new ConflictException("Orderable quantity cannot be less than already reserved or paid units");
     const listing = await this.prisma.supplierListing.update({ where: { id: existing.id }, data: { ...(dto.supplierSku !== undefined ? { supplierSku: dto.supplierSku.trim() || null } : {}), ...(dto.titleOverride !== undefined ? { titleOverride: dto.titleOverride.trim() || null } : {}), ...(dto.descriptionOverride !== undefined ? { descriptionOverride: dto.descriptionOverride.trim() || null } : {}), ...(dto.price !== undefined ? { price: this.price(dto.price) } : {}), ...(dto.currencyCode !== undefined ? { currencyCode: dto.currencyCode } : {}), ...(dto.warrantyDays !== undefined ? { warrantyDays: dto.warrantyDays } : {}),
       ...(dto.origin !== undefined || dto.deliveryMinDays !== undefined || dto.deliveryMaxDays !== undefined || dto.overseasOrderable !== undefined
         ? this.overseasFields(supplier, dto.origin ?? existing.origin,
-            dto.deliveryMinDays !== undefined ? dto.deliveryMinDays : existing.deliveryMinDays,
-            dto.deliveryMaxDays !== undefined ? dto.deliveryMaxDays : existing.deliveryMaxDays,
+            requestedOrigin === ListingOrigin.LOCAL ? null : dto.deliveryMinDays !== undefined ? dto.deliveryMinDays : existing.deliveryMinDays,
+            requestedOrigin === ListingOrigin.LOCAL ? null : dto.deliveryMaxDays !== undefined ? dto.deliveryMaxDays : existing.deliveryMaxDays,
             dto.overseasOrderable !== undefined ? dto.overseasOrderable : existing.overseasOrderable) : {}) }, include: { product: true, productVariant: true } });
     return this.response(listing);
   }
