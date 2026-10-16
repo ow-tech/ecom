@@ -34,7 +34,7 @@ describe("platform background operations triage", () => {
   it("surfaces backend failures and retries on refresh", async () => {
     api.platformOutboxPage.mockRejectedValueOnce(new Error("Unavailable")).mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 25 });
     render(<PlatformOperationsInbox />);
-    expect(await screen.findByText("Unavailable")).toBeTruthy();
+    expect(await screen.findByText(/Unavailable/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("No matching background jobs")).toBeTruthy();
   });
