@@ -6,7 +6,7 @@ import { Alert, Button, Card, EmptyState, ErrorState, FormField, Input, PageHead
 
 export function SupplierStaffManagement({ organizationId, permissions, actorUserId }: { organizationId: string; permissions: string[]; actorUserId: string }) {
   const canRead = permissions.includes("organization.members.read");
-  const canManage = permissions.includes("organization.members.manage");
+  const canManage = permissions.includes("organization.staff.manage");
   const [data, setData] = useState<OrganizationStaffList>();
   const [loading, setLoading] = useState(canRead);
   const [working, setWorking] = useState<string>();
