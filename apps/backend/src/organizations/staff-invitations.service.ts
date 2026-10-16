@@ -76,7 +76,7 @@ export class StaffInvitationsService {
     const normalized = emailKey(email);
     if (!normalized || normalized.length > 320) throw new BadRequestException("Invalid staff email");
     // Check delivery configuration before creating a pending record.
-    if (!this.config.get<string>("BREVO_API_KEY") || !this.config.get<string>("STAFF_INVITATION_FROM_EMAIL"))
+    if (!this.config.get<string>("BREVO_API_KEY") || !this.config.get<string>("BREVO_FROM_EMAIL"))
       throw new ServiceUnavailableException("Staff invitations are not configured");
     const token = randomBytes(32).toString("base64url");
     const url = this.url(token);
