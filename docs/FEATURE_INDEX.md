@@ -257,7 +257,7 @@ Feature documentation: [platform-audit-explorer.md](features/platform-audit-expl
 
 ## Marketplace commission on every supplier sale
 
-Status: IMPLEMENTED_VERIFICATION_PENDING. New commission schedules and the configured fallback must have a positive rate; PostgreSQL disallows new 0% supplier schedules without rewriting legacy rates. Net supplier earnings are still posted once when fulfilment completes. Tiny amounts may round their percentage fee to zero until a minimum-fee policy is specified.
+Status: LOCAL_VERIFIED. New commission schedules and the configured fallback require a positive rate, with PostgreSQL rejecting new 0% schedules. Existing commission history is untouched; supplier settlements remain net of fees without a second deduction. GitHub CI run 38904493490 passed (23 unit, 25 frontend files, 83 integration tests, 16 migrations). Tiny fees can still round to zero; minimum-fee policy undecided.
 
 Feature documentation: [manual-supplier-payouts.md](features/manual-supplier-payouts.md)
 
