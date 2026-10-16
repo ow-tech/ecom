@@ -79,7 +79,7 @@ export default function CheckoutPage() {
   if (!cart?.items.length) return <><StorefrontHeader /><StorefrontContainer className="max-w-2xl"><PageHeader eyebrow="Checkout" title="Your cart is empty" /><div className="mt-8"><EmptyState title="Add something to continue" detail="Choose an available offer before starting checkout." action={<Link className="font-semibold text-secondary hover:underline" href="/products">Browse products</Link>} /></div></StorefrontContainer></>;
   const total = preview?.total ?? cart.subtotal; const currency = preview?.currencyCode ?? cart.currency!; const canPay = Boolean(preview && !previewLoading && !preview.deliveryQuoteRequired && preview.availablePaymentMethods.includes(paymentMethod));
   const feeLines = [
-    ...cart.items.map(item => ({ label: `${item.productName} × ${item.quantity}`, value: (Number(item.unitPrice) * item.quantity).toFixed(2), currency: item.currency })),
+    ...cart.items.map(item => ({ label: `${item.productName} × ${item.quantity}${item.origin === "OVERSEAS" ? ` · Overseas shipping (est. ${item.deliveryMinDays}–${item.deliveryMaxDays} days)` : ""}`, value: (Number(item.unitPrice) * item.quantity).toFixed(2), currency: item.currency })),
     ...(fulfillment === "DELIVERY" ? [{ label: "Delivery fee", value: preview?.deliveryFee ?? "0.00", currency }] : []),
     ...(fulfillment === "PICKUP" ? [{ label: "Pickup fee", value: preview?.pickupFee ?? "0.00", currency }] : []),
   ];
