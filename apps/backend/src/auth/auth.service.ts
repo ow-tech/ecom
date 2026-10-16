@@ -4,6 +4,7 @@ import * as argon2 from "argon2";
 import { createHash, randomBytes } from "node:crypto";
 import { AccountAudience, Prisma, UserStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { BrevoMailService } from "../notifications/brevo-mail.service";
 
 const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
@@ -11,7 +12,7 @@ const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  constructor(private readonly prisma: PrismaService, private readonly config: ConfigService) {}
+  constructor(private readonly prisma: PrismaService, private readonly config: ConfigService, private readonly mail: BrevoMailService) {}
   cookieName(): string { return this.config.getOrThrow<string>("SESSION_COOKIE_NAME"); }
   cookieSecure(): boolean { return this.config.get<string>("NODE_ENV") === "production"; }
   async register(email: string, password: string, displayName?: string, accountAudience: AccountAudience = AccountAudience.CUSTOMER) {
@@ -103,10 +104,8 @@ export class AuthService {
     const key = this.key("reset-ip", ip);
     await this.checkThrottle([key]);
     await this.recordFailure(key, 8, 15 * 60_000);
-    const apiKey = this.config.get<string>("RESEND_API_KEY");
-    const from = this.config.get<string>("ACCOUNT_EMAIL_FROM");
     const site = this.config.get<string>("ACCOUNT_PUBLIC_URL");
-    if (!apiKey || !from || !site) throw new ServiceUnavailableException("Password recovery email is not configured");
+    if (!this.mail.isConfigured() || !site) throw new ServiceUnavailableException("Password recovery email is not configured");
     let base: URL;
     try { base = new URL(site); }
     catch { throw new ServiceUnavailableException("Password recovery email is not configured"); }
@@ -124,13 +123,11 @@ export class AuthService {
     });
     if (!created) return { status: "accepted" };
     const url = new URL("/reset-password", base);
-    url.searchParams.set("token", rawToken);
+    url.hash = new URLSearchParams({ token: rawToken }).toString();
     let sent = false;
     try {
-      const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to: [user.email], subject: "Reset your Ecom password", text: "Use this link within 30 minutes: " + url.toString() + "\nIf you did not request this, ignore this email." }),
-        signal: AbortSignal.timeout(10_000) });
-      sent = response.ok;
+      await this.mail.send({ to: user.email, subject: "Reset your Ecom password", category: "password-reset", text: "Use this link within 30 minutes: " + url.toString() + "\\nIf you did not request this, ignore this email." });
+      sent = true;
     } catch { /* Never include provider errors or user identity in the response. */ }
     if (!sent) {
       this.logger.warn("Password reset email delivery failed");
