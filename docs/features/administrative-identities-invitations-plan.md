@@ -2,7 +2,7 @@
 
 **Master roadmap:** [../IMPLEMENTATION_ROADMAP.md](../IMPLEMENTATION_ROADMAP.md), Phases 1–3. This file remains the authoritative detailed implementation contract for those three security phases.
 
-**Status: PHASE 1 COMMITTED; VERIFICATION PENDING.** The exclusive account-audience enforcement now has a dedicated implementation note [account-audience-phase1.md](account-audience-phase1.md). Supplier email invitations and head-admin administration (Phases 2–3) are still NOT IMPLEMENTED.  This is a source-grounded implementation contract, not proof that these restrictions currently apply. Target: `ow-tech/ecom` `dev`. Implement in the dependency order below and complete backend/database, frontend, regression checks and documentation per vertical. No production data changes were made during planning.
+**Status: PHASE 1 LOCAL_VERIFIED (CI 38917521648); RELEASE_GATED.** The exclusive account-audience enforcement now has a dedicated implementation note [account-audience-phase1.md](account-audience-phase1.md). Supplier email invitations and head-admin administration (Phases 2–3) are still NOT IMPLEMENTED.  This is a source-grounded implementation contract, not proof that these restrictions currently apply. Target: `ow-tech/ecom` `dev`. Implement in the dependency order below and complete backend/database, frontend, regression checks and documentation per vertical. No production data changes were made during planning.
 
 ## Business requirements
 

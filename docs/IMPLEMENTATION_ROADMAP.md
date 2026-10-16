@@ -8,7 +8,7 @@
 
 | Phase | Scope ID | Workstream | Baseline in dev | Completion target |
 | --- | --- | --- | --- | --- |
-| 1 | Identity foundation | Separate customer and staff identities | **IMPLEMENTED_VERIFICATION_PENDING** | Phase 1 account audience, database migration + triggers and segregated login committed; preflight, CI/browser/QA validation required |
+| 1 | Identity foundation | Separate customer and staff identities | **LOCAL_VERIFIED / RELEASE_GATED** | Customer/workforce identity, database guardrails, separate login and email-collision regressions passed CI 38917521648; production mixed-account preflight and browser/QA release proof pending |
 | 2 | Supplier staff | Supplier-admin invitations and role management | Registered-user, owner-managed in-app invitations exist; **new-email invites and admin delegation missing** | Verified email invitations, owner/admin delegable roles, revoke/resend/accept flows with isolated sensitive privileges |
 | 3 | Platform hierarchy | Head admin and platform staff management | Seeded super admin exists; **head-admin management missing** | Protected super/head roles, restricted platform invitations, role directory and audit |
 | 4 | 13 | Notifications and background jobs | **PARTIAL** — durable outbox, lease recovery, customer inbox and platform job-state UI CI-tested | Reliable provider email/SMS, scheduled workers and reservation expiry, delivery/retry monitoring and alerts |

@@ -1,7 +1,7 @@
 # Phase 1 — Exclusive customer and workforce accounts
 
 ## Status
-IMPLEMENTED_VERIFICATION_PENDING. Schema, customer/workforce APIs, direct PostgreSQL audience guardrails, customer-only lazy profile, workforce-only organization/RBAC boundaries, frontend sign-in separation and regression tests have been committed to `dev`. CI green and authenticated browser evidence are required to mark this phase LOCAL_VERIFIED. Email invitations, head-admin provisioning and production workforce onboarding remain Phase 2/3.
+LOCAL_VERIFIED. GitHub Actions [38917521648](https://github.com/ow-tech/ecom/actions/runs/38917521648) passed 23/23 backend unit tests, 27/27 frontend test files, 86/86 real HTTP/PostgreSQL integration tests, 18 migrations, TypeScript, lint and production build. Customer/workforce DB audience guardrails, customer profile and organization/role restrictions, audience-scoped login and registration, case-insensitive collision/race tests, safe migration, QA classification and UI authentication tests are implemented on `dev`. Authenticated real-browser verification, production database preflight, staff invitation email and production workforce bootstrap are NOT verified or delivered.
 
 ## Read-only preflight (mandatory before any database migration)
 The migration `20261016190000_exclusive_account_audience` **fails closed** when it finds users who own both any `CustomerProfile` and an organization membership or platform role. A lazy empty profile is still a conflict until the account owner validates it and its related objects. Do not delete, reassign or convert the user automatically.
@@ -50,3 +50,7 @@ Retain this report securely; it contains email identifiers. **Zero rows** are re
 
 ## Future Phase 2 integration
 New supplier/platform invitations will reserve a unique email as WORKFORCE and verify it before account activation, replacing nonproduction registration. Supplier admins require separately scoped staff-management permission and must not inherit bank/M-Pesa payout access via `organization.members.manage`. See `administrative-identities-invitations-plan.md`.
+
+## Verified CI and remaining release gates
+
+GitHub CI run **38917521648** succeeded at commit `8f4d121d65403e903649fb7f5c651c1dd2b1eb6b`: backend unit 23/23, frontend files 27/27, HTTP/PostgreSQL integration 86/86 and all 18 migrations. The runtime migration's mixed-account failure condition is implemented but production data was not scanned; operators must run the read-only query above on their staging/production copy **before** release. Supplier/team invitations, email sender, production workforce onboarding and separate head admin all remain Phases 2–3. The temporary `/auth/workforce/register` rejects production and must not be used as a substitute for verified invitation onboarding.
