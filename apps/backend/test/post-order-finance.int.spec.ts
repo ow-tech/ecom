@@ -362,7 +362,7 @@ describe("post-order refund, return, warranty, commission, ledger, and settlemen
     }
     // The new-sale policy rejects zero effective commission rather than
     // silently granting a fee-free supplier payout.
-    const zero = await fixture("zero-commission-policy", 1);
+    const zero = await fixture("fee0", 1);
     const zeroRateInput = { rate: "0", effectiveFrom: "2040-01-01T00:00:00.000Z" };
     expect((await http("POST", `/platform/finance/suppliers/${zero.supplierId}/commission-rates`, zeroRateInput, zero.platform.cookie)).status).toBe(400);
     await expect(prisma.supplierCommissionRate.create({ data: {
