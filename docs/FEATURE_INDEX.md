@@ -38,6 +38,12 @@ Status: PHASE_1_LOCAL_VERIFIED. Exclusive CUSTOMER/WORKFORCE identities, case-fo
 
 Phase 1 implementation: [account-audience-phase1.md](features/account-audience-phase1.md). Phases 2–3: [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md)
 
+## Overseas-shipped supplier listings
+
+Status: PARTIAL — origin/ETA data model, super-admin-only supplier capability, listing guards, checkout snapshots and public catalogue projection on dedicated draft branch. Overseas stock/capacity reservation and customer/supplier/admin UI remain incomplete.
+
+Feature documentation: [overseas-shipped-listings.md](features/overseas-shipped-listings.md)
+
 ## Supplier Domain + Supplier Onboarding
 
 Status: Implemented
