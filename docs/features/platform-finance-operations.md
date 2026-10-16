@@ -29,3 +29,7 @@ GitHub `dev` verification run [38893118508](https://github.com/ow-tech/ecom/acti
 ## Manual payout reference validation (2026-10-16)
 
 `MarkSettlementPaidDto.externalReference` trims surrounding whitespace before server-side validation and refuses empty/whitespace-only values. A confirmed manual `PAID` acknowledgment persists the normalized reference; a rejected empty reference leaves the batch `APPROVED` and creates no settlement debit. The real HTTP/PostgreSQL finance suite covers both paths. This does not contact a bank, verify a payment provider, prevent duplicate external-bank transaction references, or certify any external payout. That larger reconciliation contract must be selected before implementation.
+
+## Bank/M-Pesa manual destinations (2026-10-16)
+
+The draft form now selects a currency-compatible active supplier payout destination. Historical settlements can still lack a link. An `APPROVED` settlement exposes a deliberately gated `Reveal payout instructions` action for platform settlement managers (audited, no-store, not persisted in browser storage). Mark-paid still requires independent proof, an external reference and explicit human confirmation; no automatic transfer occurs. See [manual-supplier-payouts.md](manual-supplier-payouts.md).

@@ -255,6 +255,12 @@ Status: IMPLEMENTED_VERIFICATION_PARTIAL. The existing platform audit nav now op
 
 Feature documentation: [platform-audit-explorer.md](features/platform-audit-explorer.md)
 
+## Manual Bank and M-Pesa Supplier Payouts
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL. Owner-controlled encrypted payout destinations, masked supplier/platform views, privileged audited reveal and immutable selection for manual settlements are implemented. Backend/frontend CI and live operator evidence pending; no money transfer is initiated by ECOM.
+
+Feature documentation: [manual-supplier-payouts.md](features/manual-supplier-payouts.md)
+
 ## Platform Finance and Manual Settlements
 
 Status: IMPLEMENTED_VERIFICATION_PARTIAL. Finance-read balances and settlement history; settlement-manage create/approve/manually acknowledge paid with required external reference and explicit confirmation. GitHub CI successful; bank-evidence and staging browser proof pending.

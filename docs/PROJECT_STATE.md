@@ -44,6 +44,13 @@ idempotent base fixtures, and ignored local credentials. See [QA_LOCAL.md](QA_LO
 - **Background jobs:** outbox crash recovery uses lease expiration and stale-worker fencing; concurrent outbox writes use PostgreSQL-native `INSERT ... ON CONFLICT DO NOTHING` with authoritative winner lookup. Existing one-shot worker still needs deployment scheduling and monitoring.
 - **Verified CI:** [run 38897430108](https://github.com/ow-tech/ecom/actions/runs/38897430108) passed backend unit 23/23, frontend 24/24 test files, HTTP/PostgreSQL integration 82/82, 14 migrations, typecheck, lint and production builds. No real email/SMS, bank transfers or Paystack refund activity was performed.
 
+## Manual supplier payout destination feature — 2026-10-16
+
+- Bank transfers and Kenyan M-Pesa are manual platform-controlled payouts: supplier owners register encrypted instructions; platform finance chooses a currency-matched recipient while creating a settlement draft and may explicitly reveal full instructions with audit evidence.
+- Payment remains external. Finance only records an approved settlement as PAID after independent confirmation and a transaction reference, with one idempotent `SETTLEMENT_DEBIT`. Supplier net ledger earnings already exclude platform commissions; payout must not deduct commission a second time.
+- Existing configurable commission default is 10%, but 0% rate edge cases and rounding-to-zero microfees remain possible in the code. Agree on a minimum-fee policy before making a blanket every-sale minimum claim.
+- New backend encryption secret `PAYOUT_DETAILS_ENCRYPTION_KEY` is required for destination create/reveal and must be kept in server-only secret management; schema migration is additive. No actual bank/M-Pesa payout provider is connected.
+
 ## Current operational feature baseline — 2026-10-16
 
 Latest passing GitHub `dev` CI revision (before this documentation update): `05416ef25375f376f81cc337f49fa43fde5bb989`; [ECOM verification run](https://github.com/ow-tech/ecom/actions/runs/38893118508) passed backend unit 23/23, frontend test files 22/22, and real HTTP/PostgreSQL integration 79/79 using all 14 migrations. Lint, typecheck, builds, migrated DB seed and full integration checks passed. This is not live provider, browser/device or production deployment proof.

@@ -87,3 +87,7 @@ See `supplier-business-management-ui.md` for the UI contract.
 ## Platform finance interface
 
 The platform finance UI reads balances and settlement records. A privileged operator may create server-derived DRAFT settlements, approve them, and enter an external payment reference to acknowledge payment. This is **not** an automatic bank payout. See [platform-finance-operations.md](platform-finance-operations.md).
+
+## Manual bank and M-Pesa payout methods (2026-10-16)
+
+The Supplier Finance portal now includes `SupplierPayoutDestinations`: owner-managed encrypted payee instructions and masked financial-reader records. The Platform Finance portal selects an active, same-currency payout destination when creating a draft and can explicitly reveal a linked recipient for manual transfer under `platform.settlements.manage`. Existing settlement and ledger amounts are already net of platform commission: never deduct it again at payout. See [manual-supplier-payouts.md](manual-supplier-payouts.md).
