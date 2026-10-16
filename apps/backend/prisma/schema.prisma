@@ -618,6 +618,9 @@ model SupplierListing {
   origin              ListingOrigin         @default(LOCAL)
   deliveryMinDays     Int?
   deliveryMaxDays     Int?
+  overseasOrderable   Int @default(0)
+  overseasReserved    Int @default(0)
+  overseasCommitted   Int @default(0)
   warrantyDays        Int?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
