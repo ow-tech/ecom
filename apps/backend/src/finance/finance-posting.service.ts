@@ -10,7 +10,7 @@ export class FinancePostingService {
     const configured = new Prisma.Decimal(this.config.get<string>("DEFAULT_COMMISSION_RATE", "0.10"));
     const rateRow = await tx.supplierCommissionRate.findFirst({ where: { supplierId: supplierOrder.supplierId, effectiveFrom: { lte: earnedAt }, OR: [{ effectiveTo: null }, { effectiveTo: { gt: earnedAt } }] }, orderBy: { effectiveFrom: "desc" } });
     const rate = rateRow?.rate ?? configured;
-    if (rate.lt(0) || rate.gt(1)) throw new Error("Commission rate must be between 0 and 1");
+    if (rate.lte(0) || rate.gt(1)) throw new Error("Marketplace commission rate must be greater than zero and at most 100%");
     for (const item of supplierOrder.items) {
       const commissionAmount = item.lineTotal.mul(rate).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
       const supplierNetAmount = item.lineTotal.minus(commissionAmount);

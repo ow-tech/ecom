@@ -255,6 +255,12 @@ Status: IMPLEMENTED_VERIFICATION_PARTIAL. The existing platform audit nav now op
 
 Feature documentation: [platform-audit-explorer.md](features/platform-audit-explorer.md)
 
+## Marketplace commission on every supplier sale
+
+Status: IMPLEMENTED_VERIFICATION_PENDING. New commission schedules and the configured fallback must have a positive rate; PostgreSQL disallows new 0% supplier schedules without rewriting legacy rates. Net supplier earnings are still posted once when fulfilment completes. Tiny amounts may round their percentage fee to zero until a minimum-fee policy is specified.
+
+Feature documentation: [manual-supplier-payouts.md](features/manual-supplier-payouts.md)
+
 ## Manual Bank and M-Pesa Supplier Payouts
 
 Status: LOCAL_VERIFIED. Encrypted bank/M-Pesa destinations, masked supplier/platform views, audited privileged reveal and immutable manual settlement recipient selection are verified with CI run 38901310001 (23 backend unit, 25 frontend test files, 83 HTTP/PostgreSQL integration tests). Authenticated browser, secrets deployment, external statement evidence and minimum-fee business policy remain pending. No money transfer is initiated by ECOM.

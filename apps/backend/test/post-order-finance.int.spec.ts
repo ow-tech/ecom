@@ -352,7 +352,7 @@ describe("post-order refund, return, warranty, commission, ledger, and settlemen
 
   it("uses Decimal half-up commission economics and settlement eligibility without client amounts", async () => {
     const finance = app.get(FinancePostingService);
-    const cases = [{ gross: "100.00", rate: "0.10", commission: "10.00", net: "90.00" }, { gross: "0.05", rate: "0.10", commission: "0.01", net: "0.04" }, { gross: "0.04", rate: "0.10", commission: "0.00", net: "0.04" }, { gross: "99.99", rate: "0.10", commission: "10.00", net: "89.99" }, { gross: "10.00", rate: "0", commission: "0.00", net: "10.00" }, { gross: "10.00", rate: "1", commission: "10.00", net: "0.00" }, { gross: "0.01", rate: "0.10", commission: "0.00", net: "0.01" }, { gross: "9999999999999999.99", rate: "0.10", commission: "1000000000000000.00", net: "8999999999999999.99" }];
+    const cases = [{ gross: "100.00", rate: "0.10", commission: "10.00", net: "90.00" }, { gross: "0.05", rate: "0.10", commission: "0.01", net: "0.04" }, { gross: "0.04", rate: "0.10", commission: "0.00", net: "0.04" }, { gross: "99.99", rate: "0.10", commission: "10.00", net: "89.99" }, { gross: "10.00", rate: "1", commission: "10.00", net: "0.00" }, { gross: "0.01", rate: "0.10", commission: "0.00", net: "0.01" }, { gross: "9999999999999999.99", rate: "0.10", commission: "1000000000000000.00", net: "8999999999999999.99" }];
     for (const [index, testCase] of cases.entries()) {
       const f = await fixture(`decimal-${index}`, 1); const earnedAt = new Date("2041-01-01T00:00:00.000Z");
       await prisma.orderItem.update({ where: { id: f.orderItemId }, data: { unitPrice: new Prisma.Decimal(testCase.gross), lineTotal: new Prisma.Decimal(testCase.gross) } });
@@ -360,6 +360,16 @@ describe("post-order refund, return, warranty, commission, ledger, and settlemen
       await prisma.$transaction((tx) => finance.postCommissions(tx, f.supplierOrderId, earnedAt));
       const record = await prisma.commissionRecord.findUniqueOrThrow({ where: { orderItemId: f.orderItemId } }); expect(record.commissionAmount.toFixed(2)).toBe(testCase.commission); expect(record.supplierNetAmount.toFixed(2)).toBe(testCase.net);
     }
+    // The new-sale policy rejects zero effective commission rather than
+    // silently granting a fee-free supplier payout.
+    const zero = await fixture("zero-commission-policy", 1);
+    const zeroRateInput = { rate: "0", effectiveFrom: "2040-01-01T00:00:00.000Z" };
+    expect((await http("POST", `/platform/finance/suppliers/${zero.supplierId}/commission-rates`, zeroRateInput, zero.platform.cookie)).status).toBe(400);
+    await expect(prisma.supplierCommissionRate.create({ data: {
+      supplierId: zero.supplierId, rate: new Prisma.Decimal(0), effectiveFrom: new Date("2040-01-01"),
+    } })).rejects.toThrow();
+    // The database constraint and DTO protect new schedules; historical
+    // commission snapshots are immutable, and already-settled balances are untouched.
     const f = await fixture("sedges", 1); const platform = f.platform;
     await prisma.supplierLedgerEntry.createMany({ data: [{ supplierId: f.supplierId, currencyCode: "USD", type: SupplierLedgerEntryType.SUPPLIER_EARNING, amountSigned: new Prisma.Decimal("10.00"), referenceType: "TEST", referenceId: `${prefix}-usd` }, { supplierId: f.supplierId, currencyCode: "KES", type: SupplierLedgerEntryType.SUPPLIER_EARNING, amountSigned: new Prisma.Decimal("20.00"), referenceType: "TEST", referenceId: `${prefix}-kes` }] });
     expect((await http("POST", `/platform/suppliers/${f.supplierId}/settlements`, { currencyCode: "USD", netAmount: "999999", supplierId: "00000000-0000-0000-0000-000000000001" }, platform.cookie)).status).toBe(400);

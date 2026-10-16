@@ -47,6 +47,12 @@ function decimalFraction(value: unknown, name: string, fallback: string): string
   return resolved;
 }
 
+function positiveCommissionRate(value: unknown): string {
+  const rate = decimalFraction(value, "DEFAULT_COMMISSION_RATE", "0.10");
+  if (Number(rate) <= 0) throw new Error("DEFAULT_COMMISSION_RATE must be greater than zero");
+  return rate;
+}
+
 function booleanFlag(value: unknown, name: string, fallback: boolean): boolean {
   if (value === undefined || value === "") return fallback;
   if (value === true || value === "true") return true;
@@ -88,6 +94,6 @@ export function validateEnvironment(config: Environment): Environment {
     PAYSTACK_TIMEOUT_MS: positiveInteger(config.PAYSTACK_TIMEOUT_MS, "PAYSTACK_TIMEOUT_MS", 10_000),
     RESERVATION_EXPIRY_BATCH_SIZE: positiveInteger(config.RESERVATION_EXPIRY_BATCH_SIZE, "RESERVATION_EXPIRY_BATCH_SIZE", 100),
     RETURN_WINDOW_DAYS: positiveInteger(config.RETURN_WINDOW_DAYS, "RETURN_WINDOW_DAYS", 30),
-    DEFAULT_COMMISSION_RATE: decimalFraction(config.DEFAULT_COMMISSION_RATE, "DEFAULT_COMMISSION_RATE", "0.10"),
+    DEFAULT_COMMISSION_RATE: positiveCommissionRate(config.DEFAULT_COMMISSION_RATE),
   };
 }
