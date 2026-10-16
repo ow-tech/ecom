@@ -34,7 +34,7 @@ Feature documentation: [identity-tenancy-rbac.md](features/identity-tenancy-rbac
 
 ## Exclusive Account Audiences, Supplier Email Invitations and Head Admin — Planned
 
-Status: PHASE_1_LOCAL_VERIFIED. Exclusive CUSTOMER/WORKFORCE identities, case-folded email collision/race safety, fail-closed mixed-account migration, database and API guards, customer/staff login separation, QA typing, and UI regression pass CI 38918326189 (23 unit, 27 frontend files, 86 HTTP/PostgreSQL integration, 19 migrations). Phase 2 delegated staff permission and Phase 3 bounded role definitions are PARTIAL on draft PR #1; email invitation flows, platform administration APIs, and role lifecycle safeguards remain PLANNED; production migration preflight and browser release verification remain blockers.
+Status: PHASE_1_LOCAL_VERIFIED. Exclusive CUSTOMER/WORKFORCE identities, case-folded email collision/race safety, fail-closed mixed-account migration, database and API guards, customer/staff login separation, QA typing, and UI regression pass CI 38918326189 (23 unit, 27 frontend files, 86 HTTP/PostgreSQL integration, 19 migrations). Phase 2 and Phase 3 implementation source now includes scoped Brevo invitations, account activation, supplier/platform staff screens, and guarded platform role mutations on draft PR #1 (IMPLEMENTED_VERIFICATION_PARTIAL); migration, production email domain/configuration, CI, full role matrix, durable email retry and protected-root bootstrap/step-up remain gated; production migration preflight and browser release verification remain blockers.
 
 Phase 1 implementation: [account-audience-phase1.md](features/account-audience-phase1.md). Phases 2–3: [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md)
 
