@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, RoleScope, UserStatus, AccountAudience } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
@@ -49,6 +49,11 @@ export class PlatformStaffService {
         throw new NotFoundException("Active workforce member not found");
       const protectedRoot = await tx.platformRoleAssignment.findFirst({where:{userId:targetId,role:{key:"platform.super_admin"}}});
       if(protectedRoot) throw new ForbiddenException("Protected super admin cannot be managed through staff APIs");
+      const targetHead = await tx.platformRoleAssignment.findFirst({where:{userId:targetId,role:{key:"platform.head_admin"}}});
+      if(targetHead) {
+        const actorRoot = await tx.platformRoleAssignment.findFirst({where:{userId:actorId,role:{key:"platform.super_admin"}}});
+        if(!actorRoot) throw new ForbiddenException("Head admins cannot manage other head admins");
+      }
       if(assign){
         await tx.platformRoleAssignment.upsert({where:{userId_roleId:{userId:targetId,roleId:role.id}},
           create:{userId:targetId,roleId:role.id},update:{}});
