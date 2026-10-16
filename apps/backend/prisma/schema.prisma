@@ -794,6 +794,7 @@ model CheckoutAttempt {
   cart              Cart                   @relation(fields: [cartId], references: [id], onDelete: Restrict)
   order             Order?
   reservations      InventoryReservation[]
+  overseasReservations OverseasReservation[]
 
   @@unique([customerProfileId, idempotencyKey])
   @@index([cartId])
@@ -1088,6 +1089,7 @@ model OverseasReservation {
   createdAt        DateTime          @default(now())
   listing          SupplierListing   @relation(fields: [supplierListingId], references: [id], onDelete: Restrict)
   order            Order             @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  checkoutAttempt CheckoutAttempt @relation(fields: [checkoutAttemptId], references: [id], onDelete: Restrict)
   @@unique([orderId,supplierListingId])
   @@index([status,expiresAt])
 }
