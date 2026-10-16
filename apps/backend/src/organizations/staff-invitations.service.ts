@@ -168,11 +168,18 @@ export class StaffInvitationsService {
         const roleId = await this.allowed(tx, invitation.invitedByUserId, invitation.scope, invitation.roleKey);
         // Inviter must still be authorized at acceptance, including after removal.
         await this.manager(tx, invitation.invitedByUserId, invitation.scope, invitation.organizationId);
+        const currentMembership = await tx.organizationMembership.findUnique({ where: {
+          organizationId_userId: { organizationId: invitation.organizationId, userId: user.id },
+        } });
+        if (currentMembership?.status === MembershipStatus.ACTIVE)
+          throw new ConflictException("Staff membership already active");
         const membership = await tx.organizationMembership.upsert({
           where: { organizationId_userId: { organizationId: invitation.organizationId, userId: user.id } },
           create: { organizationId: invitation.organizationId, userId: user.id, status: MembershipStatus.ACTIVE },
           update: { status: MembershipStatus.ACTIVE },
         });
+        // Existing active memberships must not be re-roled by an older link.
+        // An invitation can only activate a new/removed membership.
         await tx.membershipRole.deleteMany({ where: { membershipId: membership.id } });
         await tx.membershipRole.create({ data: { membershipId: membership.id, roleId } });
       } else {
