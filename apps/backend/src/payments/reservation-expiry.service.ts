@@ -44,7 +44,8 @@ export class ReservationExpiryService {
       if (succeeded) return { expired: 0, orderExpired: false };
       const expired = await this.inventory.expireOwned(tx, orderId, now);
       if (expired === 0) return { expired: 0, orderExpired: false };
-      const active = await tx.inventoryReservation.count({ where: { orderId, status: "ACTIVE" } });
+      const active = (await tx.inventoryReservation.count({ where: { orderId, status: "ACTIVE" } }))
+        + (await tx.overseasReservation.count({ where: { orderId, status: "ACTIVE" } }));
       if (active > 0) return { expired, orderExpired: false };
       const changed = await tx.order.updateMany({ where: { id: orderId, status: order.status, paymentStatus: OrderPaymentStatus.UNPAID }, data: { status: OrderStatus.EXPIRED } });
       if (changed.count === 1) {
