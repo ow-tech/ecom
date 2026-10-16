@@ -18,6 +18,6 @@ BEGIN
  ) THEN RAISE EXCEPTION 'Overseas shipping is not enabled for supplier' USING ERRCODE='23514'; END IF;
  RETURN NEW;
 END $$;
-CREATE TRIGGER "listing_overseas_capability_guard" BEFORE INSERT OR UPDATE OF "origin","supplierId" ON "SupplierListing"
+CREATE TRIGGER "listing_overseas_capability_guard" BEFORE INSERT OR UPDATE OF "origin","supplierId","status" ON "SupplierListing"
 FOR EACH ROW EXECUTE FUNCTION check_overseas_listing_capability();
 -- Revocation affects future activation/checkout but must not rewrite paid order history.
