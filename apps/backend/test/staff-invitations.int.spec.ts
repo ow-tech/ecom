@@ -8,7 +8,7 @@ import { AddressInfo } from "node:net";
 
 const prefix = `staff-invite-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const password = "SecureDevelopmentPassword#2026";
-type ResponseShape = { status: number; body: any; headers: Record<string,string|string[]|undefined> };
+type ResponseShape = { status: number; body: Record<string, string>; headers: Record<string,string|string[]|undefined> };
 
 describe("staff invitations — live HTTP/PostgreSQL", () => {
   let app: INestApplication;
