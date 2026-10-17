@@ -85,7 +85,7 @@ describe("staff invitations — live HTTP/PostgreSQL", () => {
     expect(organization.status).toBe(201);
     const id=organization.body.id as string;
     const recipient=email("new-employee");
-    const invited=await http("POST",`/organizations/${id}/staff-invitations`,{email:recipient,roleKey:"organization.member"},owner.cookie);
+    const invited=await http("POST",`/organizations/${id}/staff-invitations`,{email:recipient,roleKey:"organization.admin"},owner.cookie);
     expect(invited.status).toBe(201);
     expect(invited.body.delivery).toBe("ACCEPTED_BY_PROVIDER");
     const duplicate=await http("POST","/auth/register",{email:recipient,password});
