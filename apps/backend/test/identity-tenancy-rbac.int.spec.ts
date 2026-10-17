@@ -199,17 +199,17 @@ describe("identity, tenancy, and RBAC integration", () => {
     process.env.ACCOUNT_PUBLIC_URL = "http://localhost:3100";
     global.fetch = jest.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       messages.push(String(init?.body ?? ""));
-      return { ok: true, status: 200 } as Response;
+      return { ok: true, status: 200, json: async () => ({ messageId: "test-provider-accepted" }) } as Response;
     }) as typeof fetch;
     try {
       const requested = await http("POST", "/auth/password/request-reset", { email: account.email });
       expect(requested.status).toBe(201);
       expect(requested.body).toEqual({ status: "accepted" });
       expect(messages).toHaveLength(1);
-      const mail = JSON.parse(messages[0]) as { text: string };
-      const link = mail.text.match(/https?:\/\/[^\s]+/)?.[0];
+      const mail = JSON.parse(messages[0]) as { textContent: string };
+      const link = mail.textContent.match(/https?:\/\/[^\s]+/)?.[0];
       expect(link).toBeDefined();
-      const token = new URL(link!).searchParams.get("token")!;
+      const token = new URLSearchParams(new URL(link!).hash.slice(1)).get("token")!;
       expect(token).toBeTruthy();
       const saved = await prisma.passwordResetToken.findUniqueOrThrow({ where: { userId: account.id } });
       expect(saved.tokenHash).not.toBe(token);
