@@ -137,7 +137,7 @@ export class CheckoutService {
           }
           for (const line of validated) {
             const listing = line.commercial.listing;
-            await tx.orderItem.create({ data: { orderId: order.id, supplierOrderId: supplierOrders.get(listing.supplierId)!, supplierId: listing.supplierId, supplierListingId: listing.id, productId: listing.productId, productVariantId: listing.productVariantId, productNameSnapshot: listing.product.name, variantNameSnapshot: listing.productVariant?.name, supplierNameSnapshot: listing.supplier.displayName, supplierSkuSnapshot: listing.supplierSku, quantity: line.item.quantity, unitPrice: listing.price, lineTotal: line.lineTotal, currencyCode: listing.currencyCode, warrantyDaysSnapshot: listing.warrantyDays } });
+            await tx.orderItem.create({ data: { orderId: order.id, supplierOrderId: supplierOrders.get(listing.supplierId)!, supplierId: listing.supplierId, supplierListingId: listing.id, productId: listing.productId, productVariantId: listing.productVariantId, productNameSnapshot: listing.product.name, variantNameSnapshot: listing.productVariant?.name, supplierNameSnapshot: listing.supplier.displayName, supplierSkuSnapshot: listing.supplierSku, quantity: line.item.quantity, unitPrice: listing.price, lineTotal: line.lineTotal, currencyCode: listing.currencyCode, warrantyDaysSnapshot: listing.warrantyDays, originSnapshot: listing.origin, deliveryMinDaysSnapshot: listing.deliveryMinDays, deliveryMaxDaysSnapshot: listing.deliveryMaxDays } });
           }
 
           const ttlMinutes = this.config.get<number>("CHECKOUT_RESERVATION_TTL_MINUTES", 15);

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Prisma, ProductStatus, ProductVariantStatus, SupplierListingStatus, SupplierStatus } from "@prisma/client";
+import { ListingOrigin, Prisma, ProductStatus, ProductVariantStatus, SupplierListingStatus, SupplierStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 type Database = Prisma.TransactionClient | PrismaService;
@@ -22,9 +22,12 @@ export class CommercialAvailabilityService {
     if (!listing) return null;
     const eligible = listing.status === SupplierListingStatus.ACTIVE
       && listing.supplier.status === SupplierStatus.ACTIVE
+      && (listing.origin !== ListingOrigin.OVERSEAS || listing.supplier.overseasEnabled)
       && listing.product.status === ProductStatus.ACTIVE
       && (!listing.productVariant || listing.productVariant.status === ProductVariantStatus.ACTIVE);
-    const availableQuantity = listing.inventoryItems.reduce((total, item) => total + item.onHand - item.reserved, 0);
+    const availableQuantity = listing.origin === ListingOrigin.OVERSEAS
+      ? listing.overseasOrderable - listing.overseasReserved - listing.overseasCommitted
+      : listing.inventoryItems.reduce((total, item) => total + item.onHand - item.reserved, 0);
     return {
       eligible,
       currentPrice: listing.price,

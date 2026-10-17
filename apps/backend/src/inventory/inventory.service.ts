@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { InventoryMovementType, Prisma, ReservationStatus } from "@prisma/client";
+import { InventoryMovementType, ListingOrigin, Prisma, ReservationStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service"; import { RbacService } from "../rbac/rbac.service";
 import { AuditService } from "../audit/audit.service";
 import { AdjustStockDto, CreateInventoryLocationDto, InventoryListDto, ItemQuantityDto, ReceiveStockDto, UpdateInventoryLocationDto } from "./dto/inventory.dto";
@@ -28,6 +28,22 @@ type RawItem = { id: string; onHand: number; reserved: number };
   // Checkout's canonical owned allocation seam. It reuses the same conditional
   // update as supplier reservation APIs and records ownership in the caller's transaction.
   async allocateOwned(tx: Prisma.TransactionClient, supplierListingId: string, quantity: number, checkoutAttemptId: string, orderId: string, expiresAt: Date) {
+    const listing = await tx.supplierListing.findUnique({ where: { id: supplierListingId },
+      select: { origin: true, supplier: { select: { overseasEnabled: true, status: true } } } });
+    if (listing?.origin === ListingOrigin.OVERSEAS) {
+      if (!listing.supplier.overseasEnabled || listing.supplier.status !== "ACTIVE")
+        throw new ConflictException("Overseas shipping is not authorized");
+      // INV-OVERSEAS-01: atomic capacity claim; physical onHand is untouched.
+      const claimed = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        UPDATE "SupplierListing" SET "overseasReserved"="overseasReserved"+${quantity},
+          "updatedAt"=CURRENT_TIMESTAMP
+        WHERE "id"=${supplierListingId}::uuid AND "origin"='OVERSEAS'
+          AND "overseasOrderable"-"overseasReserved"-"overseasCommitted">=${quantity}
+        RETURNING "id"`);
+      if (!claimed.length) throw new ConflictException("Overseas orderable quantity is unavailable");
+      await tx.overseasReservation.create({ data: { supplierListingId, checkoutAttemptId, orderId, quantity, expiresAt } });
+      return [];
+    }
     const items = await tx.inventoryItem.findMany({ where: { supplierListingId, inventoryLocation: { status: "ACTIVE" } }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, onHand: true, reserved: true } });
     let remaining = quantity;
     const allocations: Array<{ inventoryItemId: string; quantity: number }> = [];
@@ -53,13 +69,27 @@ type RawItem = { id: string; onHand: number; reserved: number };
       const rows = await tx.$queryRaw<RawItem[]>(Prisma.sql`UPDATE "InventoryItem" SET "reserved" = "reserved" - ${reservation.quantity}, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ${reservation.inventoryItemId}::uuid AND "reserved" >= ${reservation.quantity} RETURNING "id", "onHand", "reserved"`);
       if (!rows[0]) throw new ConflictException("Owned reservation cannot be released");
     }
-    return reservations.length;
+    const overseas = await tx.overseasReservation.findMany({ where: { orderId, status: ReservationStatus.ACTIVE },
+      orderBy: { supplierListingId: "asc" } });
+    for (const reservation of overseas) {
+      const claimed = await tx.overseasReservation.updateMany({ where: { id: reservation.id, status: ReservationStatus.ACTIVE },
+        data: { status: ReservationStatus.RELEASED, releasedAt } });
+      if (!claimed.count) continue;
+      const updated = await tx.supplierListing.updateMany({ where: { id: reservation.supplierListingId,
+        overseasReserved: { gte: reservation.quantity } }, data: { overseasReserved: { decrement: reservation.quantity } } });
+      if (!updated.count) throw new ConflictException("Overseas owned reservation cannot be released");
+    }
+    return reservations.length + overseas.length;
   }
 
   // Canonical transaction-aware owned consumption seam used by payment settlement.
   async consumeOwned(tx: Prisma.TransactionClient, orderId: string, paymentId: string, consumedAt: Date) {
     const reservations = await tx.inventoryReservation.findMany({ where: { orderId }, orderBy: [{ inventoryItemId: "asc" }, { id: "asc" }] });
-    if (reservations.length === 0 || reservations.some((reservation) => reservation.status !== ReservationStatus.ACTIVE)) {
+    const overseas = await tx.overseasReservation.findMany({ where: { orderId },
+      orderBy: [{ supplierListingId: "asc" }, { id: "asc" }] });
+    if ((reservations.length === 0 && overseas.length === 0)
+      || reservations.some(reservation => reservation.status !== ReservationStatus.ACTIVE)
+      || overseas.some(reservation => reservation.status !== ReservationStatus.ACTIVE)) {
       throw new ConflictException("Order reservations are not all active");
     }
     for (const reservation of reservations) {
@@ -70,7 +100,16 @@ type RawItem = { id: string; onHand: number; reserved: number };
       if (!item) throw new ConflictException("Owned reservation cannot be consumed");
       await tx.inventoryMovement.create({ data: { inventoryItemId: reservation.inventoryItemId, type: InventoryMovementType.STOCK_OUT, quantity: reservation.quantity, previousOnHand: item.onHand + reservation.quantity, newOnHand: item.onHand, referenceType: "PAYMENT", referenceId: paymentId, reason: "Order payment confirmed" } });
     }
-    return reservations.length;
+    for (const reservation of overseas) {
+      const claimed = await tx.overseasReservation.updateMany({ where: { id: reservation.id, status: ReservationStatus.ACTIVE },
+        data: { status: ReservationStatus.CONSUMED, consumedAt } });
+      if (!claimed.count) throw new ConflictException("Overseas owned reservation concurrently changed");
+      const updated = await tx.supplierListing.updateMany({ where: {
+        id: reservation.supplierListingId, overseasReserved: { gte: reservation.quantity },
+      }, data: { overseasReserved: { decrement: reservation.quantity }, overseasCommitted: { increment: reservation.quantity } } });
+      if (!updated.count) throw new ConflictException("Overseas owned reservation cannot be consumed");
+    }
+    return reservations.length + overseas.length;
   }
 
   // Canonical transaction-aware expiry seam. A conditional claim makes retries safe.
@@ -82,6 +121,19 @@ type RawItem = { id: string; onHand: number; reserved: number };
       if (claimed.count !== 1) continue;
       const rows = await tx.$queryRaw<RawItem[]>(Prisma.sql`UPDATE "InventoryItem" SET "reserved" = "reserved" - ${reservation.quantity}, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ${reservation.inventoryItemId}::uuid AND "reserved" >= ${reservation.quantity} RETURNING "id", "onHand", "reserved"`);
       if (!rows[0]) throw new ConflictException("Expired reservation cannot be released");
+      expired += 1;
+    }
+    const overseas = await tx.overseasReservation.findMany({ where: {
+      orderId, status: ReservationStatus.ACTIVE, expiresAt: { lte: now },
+    }, orderBy: { supplierListingId: "asc" } });
+    for (const reservation of overseas) {
+      const claimed = await tx.overseasReservation.updateMany({ where: {
+        id: reservation.id, status: ReservationStatus.ACTIVE, expiresAt: { lte: now },
+      }, data: { status: ReservationStatus.EXPIRED, releasedAt: now } });
+      if (!claimed.count) continue;
+      const updated = await tx.supplierListing.updateMany({ where: { id: reservation.supplierListingId,
+        overseasReserved: { gte: reservation.quantity } }, data: { overseasReserved: { decrement: reservation.quantity } } });
+      if (!updated.count) throw new ConflictException("Expired overseas reservation cannot be released");
       expired += 1;
     }
     return expired;

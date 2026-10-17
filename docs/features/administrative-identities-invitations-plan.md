@@ -2,7 +2,7 @@
 
 **Master roadmap:** [../IMPLEMENTATION_ROADMAP.md](../IMPLEMENTATION_ROADMAP.md), Phases 1–3. This file remains the authoritative detailed implementation contract for those three security phases.
 
-**Status: PHASE 1 LOCAL_VERIFIED (CI 38917521648); RELEASE_GATED.** The exclusive account-audience enforcement now has a dedicated implementation note [account-audience-phase1.md](account-audience-phase1.md). Supplier email invitations and head-admin administration (Phases 2–3) are still NOT IMPLEMENTED.  This is a source-grounded implementation contract, not proof that these restrictions currently apply. Target: `ow-tech/ecom` `dev`. Implement in the dependency order below and complete backend/database, frontend, regression checks and documentation per vertical. No production data changes were made during planning.
+**Status: PHASE 1 LOCAL_VERIFIED; PHASES 2–3 PARTIAL ON DRAFT BRANCH, NOT RELEASE READY.** The exclusive account-audience enforcement now has a dedicated implementation note [account-audience-phase1.md](account-audience-phase1.md). A narrow supplier staff permission and bounded platform role definitions exist on draft branch `feature/supplier-staff-delegation-phase2`; invitation delivery, lifecycle management, platform staff APIs and UI are NOT IMPLEMENTED.  This is a source-grounded implementation contract, not proof that these restrictions currently apply. Target: `ow-tech/ecom` `dev`. Implement in the dependency order below and complete backend/database, frontend, regression checks and documentation per vertical. No production data changes were made during planning.
 
 ## Business requirements
 
@@ -68,3 +68,46 @@
 No automatic conversion of a customer's email into an administrator. No customer-commerce access on a staff email. No supplier access based only on a route parameter. No plaintext invitation token persistence. No head-admin permission to create or manage super admins. No implied external email delivery without a real provider. Existing supplier commissions, bank/M-Pesa manual payouts, payment settlement and customer-order histories must remain unchanged by this identity work.
 
 **Safe continuation:** Start with Feature 1 preflight/migration and protected `AuthService.register`, `CustomerService.ensureCustomerProfile`, `OrganizationsService.create`, `OrganizationMembersService.invite/accept` and platform-assignment safeguards. Preserve unique `User.emailNormalized` and existing RBAC invariants. Keep the index and this plan updated after each fully verified vertical.
+
+
+## October 16 implementation checkpoint (draft branch only)
+
+Phase 2: `organization.staff.manage` is seeded for supplier owner/admin and checked in the supplier staff mutation service and UI. `organization.members.manage` remains the owner-only payout mutation authority. Existing invitation still only targets registered WORKFORCE users and does not send email.
+
+Phase 3: seed defines `platform.head_admin`, `platform.operations_admin`, `platform.support_admin`, `platform.audit_viewer` and the distinct platform staff/head-admin permissions. Head admin receives subordinate staff management but not `platform.head_admin.manage`, which is assigned only to super admin. These are registry definitions **only**: no API, UI, bootstrap, dynamic grant/revoke, last-root safety, email onboarding, verified tests or production deployment. New roles must never be considered ready until those enforcement checks exist.
+
+Next safe implementation: transactional invitation database model, reserved-email collision protection, secure invitation delivery/acceptance and role management; then protected platform staff grant/revoke services with step-up and last-super-admin protections, APIs and UI. Reconcile seeded role permissions against existing databases before deploy; the existing upsert code adds permissions but does not remove obsolete grants. No production migration or mail delivery was performed.
+
+
+## Implementation checkpoint — invitation and platform staff APIs (draft PR #1)
+
+**Status: IMPLEMENTED_VERIFICATION_PARTIAL, NOT MERGEABLE WITHOUT TESTS.** This is source implementation, not evidence of successful CI or delivery.
+
+Branch: `feature/supplier-staff-delegation-phase2`.
+
+Implemented source seams:
+- `apps/backend/prisma/migrations/20261016210000_staff_invitations/migration.sql` and Prisma model (separate invitation lifecycle, case-folded normalized email, pending uniqueness and one-time hash).
+- `apps/backend/src/organizations/staff-invitations.service.ts` and controller: supplier and platform email invites, tenant-scoped permissions, token acceptance, 48-hour expiry, role checks at acceptance, bounded resend with token rotation, revoke and audit.
+- `apps/backend/src/notifications/brevo-mail.service.ts`: free-tier Brevo transactional HTTP sender, configuration fail-closed, no token logging. Provider acknowledgment is not proof of delivery.
+- `apps/backend/src/auth/auth.service.ts`: pending invitation reservation checked under advisory email lock during CUSTOMER registration.
+- `apps/backend/src/organizations/platform-staff.service.ts` and controller: platform directory, subordinate grant/revoke, super-admin-only head admin role mutations, owner/self/protected-root and head-admin delegation restrictions.
+- `apps/frontend/components/supplier-staff-management.tsx`, `platform-staff-management.tsx`, `platform-workspace.tsx`, and `apps/frontend/app/(auth)/staff/invitation/page.tsx`: email-only invites, pending state, resend/revoke, head/staff directory and first-time password activation.
+- `apps/backend/test/staff-invitations.int.spec.ts`: HTTP/PostgreSQL regression source, not yet executed.
+
+Configuration (backend only; use secure secret manager in deployed environments):
+```env
+BREVO_API_KEY=<from Brevo API key settings>
+BREVO_FROM_EMAIL=notifications@your-verified-domain.example
+BREVO_FROM_NAME=Ecom
+ACCOUNT_PUBLIC_URL=https://your-storefront-domain.example
+```
+Verify sending domain SPF/DKIM in Brevo, ensure HTTPS application URL, and confirm the recipient inbox with a real test address. Never set keys in `NEXT_PUBLIC_*`, source control, logs or frontend configuration. No key/domain is configured by code and no actual emails have been sent by this work.
+
+**Release verification outstanding:** execute `pnpm --filter @ecom/backend prisma:generate` and migrate a fresh disposable PostgreSQL database; run backend typecheck, lint, build, targeted staff/identity/finance HTTP tests, frontend typecheck/tests/build; inspect CI; perform authenticated responsive-browser role matrix and Brevo deliverability test; run production mixed-account/email collision preflight before database migration. Current implementation sends Brevo mail directly after invitation transaction rather than through a durable outbox. Unexpected crashes between invitation persistence and provider delivery are recoverable by resend but not automatically retried; harden with a transactional outbox before production certification. Platform super-admin bootstrap and step-up authentication are still operational release gates. Legacy registered-user invitation POST returns HTTP 410; outstanding pre-existing legacy INVITED memberships require a reviewed transition plan.
+
+**Critical security matrix to prove before merge:** customer email cannot be invited; customer registration rejects reserved workforce email, including simultaneous registration/invitation; revoked/expired/replayed token never grants membership; inviter loses authority before acceptance; supplier admin cannot mutate bank/M-Pesa destinations; tenant A cannot mutate B; head admin cannot manage root, head peers or self; root is never delegable via staff API; role revocation denies subsequent platform requests; seed remains idempotent and does not leave obsolete permissions. No production writes have been performed.
+
+
+## October 16 — targeted audit and authorization regression extension
+
+The supplier member change/remove paths now write `SUPPLIER_STAFF_ROLE_CHANGED` and `SUPPLIER_STAFF_REMOVED` audit events in the same transaction as the permission mutation. Existing request authorization continues to read the active membership/roles from PostgreSQL, rather than trusting cached browser permissions. `apps/backend/test/staff-invitations.int.spec.ts` now asserts immediate loss of protected staff list access after role change/removal, associated audit events, and root/head-admin delegation boundaries. These are committed test cases, **not executed test evidence**. Before release, run all of them against migrated PostgreSQL, extend coverage to cross-tenant and invitation expiry/revoke race cases, and resolve any failures. Draft PR remains unmerged; no production changes.

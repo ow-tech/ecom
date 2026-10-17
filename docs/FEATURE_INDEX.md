@@ -6,6 +6,12 @@ Status: PLANNED and indexed. Identity phases 1–3 are the first security depend
 
 Roadmap: [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md)
 
+## Transactional email — Brevo
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL (shared provider code for staff invitations, password resets and requested email notification attempts; live sender, delivery and CI not verified).
+
+Feature documentation: [brevo-transactional-email.md](features/brevo-transactional-email.md)
+
 ## Foundation
 
 Status: Implemented
@@ -34,9 +40,15 @@ Feature documentation: [identity-tenancy-rbac.md](features/identity-tenancy-rbac
 
 ## Exclusive Account Audiences, Supplier Email Invitations and Head Admin — Planned
 
-Status: PHASE_1_LOCAL_VERIFIED. Exclusive CUSTOMER/WORKFORCE identities, case-folded email collision/race safety, fail-closed mixed-account migration, database and API guards, customer/staff login separation, QA typing, and UI regression pass CI 38918326189 (23 unit, 27 frontend files, 86 HTTP/PostgreSQL integration, 19 migrations). Phase 2 supplier-admin email invitations and Phase 3 head-admin roles remain PLANNED; production migration preflight and browser release verification remain blockers.
+Status: PHASE_1_LOCAL_VERIFIED. Exclusive CUSTOMER/WORKFORCE identities, case-folded email collision/race safety, fail-closed mixed-account migration, database and API guards, customer/staff login separation, QA typing, and UI regression pass CI 38918326189 (23 unit, 27 frontend files, 86 HTTP/PostgreSQL integration, 19 migrations). Phase 2 and Phase 3 implementation source now includes scoped Brevo invitations, account activation, supplier/platform staff screens, and guarded platform role mutations on draft PR #1 (IMPLEMENTED_VERIFICATION_PARTIAL); migration, production email domain/configuration, CI, full role matrix, durable email retry and protected-root bootstrap/step-up remain gated; production migration preflight and browser release verification remain blockers.
 
 Phase 1 implementation: [account-audience-phase1.md](features/account-audience-phase1.md). Phases 2–3: [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md)
+
+## Overseas-shipped supplier listings
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL — super-admin supplier capability, orderable overseas capacity and owned reservation settlement/expiry/release, customer/supplier/admin UI and immutable order ETA snapshots implemented in draft PR #2. Schema migration, CI, full checkout/payment regressions and browser QA remain unverified.
+
+Feature documentation: [overseas-shipped-listings.md](features/overseas-shipped-listings.md)
 
 ## Supplier Domain + Supplier Onboarding
 

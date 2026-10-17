@@ -13,9 +13,11 @@ export class ReservationExpiryService {
     const configured = this.config.get<number>("RESERVATION_EXPIRY_BATCH_SIZE", 100);
     const limit = Math.min(Math.max(requestedLimit ?? configured, 1), configured);
     const candidates = await this.prisma.$queryRaw<Array<{ orderId: string }>>(Prisma.sql`
-      SELECT DISTINCT "orderId" FROM "InventoryReservation"
-      WHERE "status" = 'ACTIVE' AND "expiresAt" <= ${now}
-      ORDER BY "orderId" LIMIT ${limit}
+      SELECT "orderId" FROM (
+        SELECT "orderId" FROM "InventoryReservation" WHERE "status"='ACTIVE' AND "expiresAt" <= ${now}
+        UNION
+        SELECT "orderId" FROM "OverseasReservation" WHERE "status"='ACTIVE' AND "expiresAt" <= ${now}
+      ) due ORDER BY "orderId" LIMIT ${limit}
     `);
     const results: Array<{ orderId: string; expired: number; orderExpired: boolean }> = [];
     for (const candidate of candidates) {
@@ -44,7 +46,8 @@ export class ReservationExpiryService {
       if (succeeded) return { expired: 0, orderExpired: false };
       const expired = await this.inventory.expireOwned(tx, orderId, now);
       if (expired === 0) return { expired: 0, orderExpired: false };
-      const active = await tx.inventoryReservation.count({ where: { orderId, status: "ACTIVE" } });
+      const active = (await tx.inventoryReservation.count({ where: { orderId, status: "ACTIVE" } }))
+        + (await tx.overseasReservation.count({ where: { orderId, status: "ACTIVE" } }));
       if (active > 0) return { expired, orderExpired: false };
       const changed = await tx.order.updateMany({ where: { id: orderId, status: order.status, paymentStatus: OrderPaymentStatus.UNPAID }, data: { status: OrderStatus.EXPIRED } });
       if (changed.count === 1) {

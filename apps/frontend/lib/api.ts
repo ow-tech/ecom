@@ -36,7 +36,7 @@ export type CatalogueItem = {
 export type CataloguePage = { data: CatalogueItem[]; page: number; limit: number; total: number };
 export type CatalogueMedia = { id: string; url: string; altText: string };
 export type CatalogueVariant = { id: string; name: string; attributes: Record<string, unknown> };
-export type CatalogueOffer = { id: string; price: string; currencyCode: string; variantId: string | null; variant: CatalogueVariant | null; availability: "IN_STOCK"; supplier: { slug: string; name: string } };
+export type CatalogueOffer = { id: string; price: string; currencyCode: string; origin?: "LOCAL" | "OVERSEAS"; deliveryMinDays?: number | null; deliveryMaxDays?: number | null; variantId: string | null; variant: CatalogueVariant | null; availability: "IN_STOCK"; supplier: { slug: string; name: string } };
 export type CatalogueProduct = {
   id: string; name: string; slug: string; brand: string | null;
   category: { id: string; name: string; slug: string }; image: CatalogueMedia | null;
@@ -44,7 +44,7 @@ export type CatalogueProduct = {
 };
 export type CatalogueProductDetail = CatalogueProduct & { description: string | null; media: CatalogueMedia[]; variants: CatalogueVariant[] };
 export type CatalogueProductPage = { data: CatalogueProduct[]; page: number; limit: number; total: number; filters: { suppliers: Array<{ slug: string; name: string }>; currencies: string[] } };
-export type CartResponse = { id: string; status: "ACTIVE"; currencyCode: string | null; subtotal: string; items: Array<{ id: string; supplierListingId: string; quantity: number; unitPriceSnapshot: string; currencyCode: string; currentPrice: string | null; currentAvailability: number; eligible: boolean; productName: string | null; productSlug: string | null; variantName: string | null; supplierDisplayName: string | null; primaryImage: { url: string; altText: string } | null }> };
+export type CartResponse = { id: string; status: "ACTIVE"; currencyCode: string | null; subtotal: string; items: Array<{ id: string; supplierListingId: string; quantity: number; unitPriceSnapshot: string; currencyCode: string; currentPrice: string | null; currentAvailability: number; eligible: boolean; origin: "LOCAL" | "OVERSEAS"; deliveryMinDays: number | null; deliveryMaxDays: number | null; productName: string | null; productSlug: string | null; variantName: string | null; supplierDisplayName: string | null; primaryImage: { url: string; altText: string } | null }> };
 export type CustomerProfile = { id: string; userId: string; firstName: string | null; lastName: string | null; phone: string | null; alternativePhone: string | null };
 export type CustomerAddress = { id: string; label: string | null; recipientName: string; phone: string; alternativePhone: string | null; countryCode: string; region: string; city: string; estate: string | null; street: string | null; building: string | null; houseNumber: string | null; landmark: string | null; deliveryNotes: string | null; isDefault: boolean };
 export type AddressInput = Pick<CustomerAddress, "recipientName" | "phone" | "countryCode" | "region" | "city"> & Partial<Omit<CustomerAddress, "id" | "recipientName" | "phone" | "countryCode" | "region" | "city">>;
@@ -80,9 +80,9 @@ export type OrderPaymentStatus = "UNPAID" | "PAID" | "PAID_REVIEW";
 export type PaymentStatus = "INITIALIZATION_PENDING" | "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "UNKNOWN";
 export type AfterSalesRequest = { id: string; status: string; orderId: string; requestedAmount?: string | null; items?: Array<{ orderItemId: string; quantity: number }> };
 export type WarrantyClaimSummary = { id: string; status: string; orderItemId: string; issueDescription: string; createdAt: string };
-export type CustomerOrderItem = { id: string; productNameSnapshot: string; variantNameSnapshot: string | null; supplierNameSnapshot: string; supplierSkuSnapshot: string | null; quantity: number; unitPrice: string; lineTotal: string; currencyCode: string; warrantyDaysSnapshot?: number | null };
+export type CustomerOrderItem = { id: string; productNameSnapshot: string; variantNameSnapshot: string | null; supplierNameSnapshot: string; supplierSkuSnapshot: string | null; quantity: number; unitPrice: string; lineTotal: string; currencyCode: string; originSnapshot?: "LOCAL" | "OVERSEAS"; deliveryMinDaysSnapshot?: number | null; deliveryMaxDaysSnapshot?: number | null; warrantyDaysSnapshot?: number | null };
 export type CustomerOrder = { id: string; orderNumber: string; status: OrderStatus; paymentStatus: OrderPaymentStatus; currencyCode: string; subtotal: string; deliveryFee: string; pickupFee: string; total: string; fulfillmentMethod: "DELIVERY" | "PICKUP"; createdAt: string; items: CustomerOrderItem[]; statusHistory: Array<{ id: string; newStatus: OrderStatus; publicMessage: string | null; createdAt: string }> };
-export type CustomerOrderListItem = Omit<CustomerOrder, "items" | "statusHistory"> & { items: Array<Pick<CustomerOrderItem, "productNameSnapshot" | "variantNameSnapshot" | "quantity" | "unitPrice" | "lineTotal">> };
+export type CustomerOrderListItem = Omit<CustomerOrder, "items" | "statusHistory"> & { items: Array<Pick<CustomerOrderItem, "productNameSnapshot" | "variantNameSnapshot" | "quantity" | "unitPrice" | "lineTotal" | "originSnapshot" | "deliveryMinDaysSnapshot" | "deliveryMaxDaysSnapshot">> };
 export type CustomerTracking = { orderNumber: string; paymentStatus: OrderPaymentStatus; fulfillmentMethod: "DELIVERY" | "PICKUP"; currentStatus: OrderStatus; quote: { status: string; amount: string | null; currencyCode: string; expiresAt: string | null } | null; pickup: { name: string; address: string; city: string; region: string; phone: string | null; pickupFee: string } | null; delivery: { recipientName: string; countryCode: string; region: string; city: string; estate: string | null; street: string | null; building: string | null; houseNumber: string | null; landmark: string | null } | null; supplierProgress: Array<{ supplierDisplayName: string; status: string }>; timeline: Array<{ timestamp: string; status: string; message: string | null; supplierDisplayName: string | null }> };
 export type SupportCategory = "ORDER" | "PAYMENT" | "DELIVERY" | "REFUND" | "RETURN" | "WARRANTY" | "PRODUCT" | "ACCOUNT" | "SUPPLIER" | "OTHER";
 export type CustomerSupportTicket = { id: string; ticketNumber: string; category: SupportCategory; priority: string; status: string; subject: string; relatedEntityType: string | null; relatedEntityId: string | null; requesterUserId: string; createdAt: string; updatedAt: string; messages?: Array<{ id: string; authorUserId: string; body: string; createdAt: string }> };
@@ -131,6 +131,17 @@ function publicProductQuery(query: { category?: string; search?: string; supplie
 }
 
 export const api = {
+  acceptStaffInvitation: (token: string, password?: string, displayName?: string) => request<{status: string; scope: string}>("/staff-invitations/accept", { method: "POST", body: JSON.stringify({token,password,displayName}) }),
+  supplierStaffInvitations: (organizationId: string) => request<Array<{id: string; email: string; roleKey: string; status: string; emailedAt: string | null; expiresAt: string}>>(`/organizations/${encodeURIComponent(organizationId)}/staff-invitations`),
+  resendSupplierStaffInvitation: (organizationId: string, id: string) => request<{delivery:string}>(`/organizations/${encodeURIComponent(organizationId)}/staff-invitations/${encodeURIComponent(id)}/resend`, {method:"POST"}),
+  resendPlatformStaffInvitation: (id:string) => request<{delivery:string}>(`/platform/staff-invitations/${encodeURIComponent(id)}/resend`, {method:"POST"}),
+  platformStaff: () => request<Array<{id:string;email:string;displayName:string|null;status:string;roles:string[]}>>("/platform/staff"),
+  changePlatformStaffRole: (userId:string, roleKey:string, assign:boolean) => request<{assigned:boolean}>(`/platform/staff/${encodeURIComponent(userId)}/role`,{method:"PATCH",body:JSON.stringify({roleKey,assign})}),
+  revokeSupplierStaffInvitation: (organizationId: string, id: string) => request<{status: string}>(`/organizations/${encodeURIComponent(organizationId)}/staff-invitations/${encodeURIComponent(id)}`, {method:"DELETE"}),
+  platformStaffInvitations: () => request<Array<{id: string;email:string;roleKey:string;status:string;expiresAt:string}>>("/platform/staff-invitations"),
+  invitePlatformStaff: (email: string, roleKey: string) => request<{id:string;status:string}>("/platform/staff-invitations", {method:"POST",body:JSON.stringify({email,roleKey})}),
+  revokePlatformStaffInvitation: (id:string) => request<{status:string}>(`/platform/staff-invitations/${encodeURIComponent(id)}`, {method:"DELETE"}),
+
   me: () => request<Session>("/auth/me"),
   login: (email: string, password: string) => request<unknown>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
   workforceLogin: (email: string, password: string) => request<unknown>("/auth/workforce/login", { method: "POST", body: JSON.stringify({ email, password }) }),
@@ -150,7 +161,7 @@ export const api = {
   customerProfile: () => request<CustomerProfile>("/customer/profile"),
   updateCustomerProfile: (input: Partial<Pick<CustomerProfile, "firstName" | "lastName" | "phone" | "alternativePhone">>) => request<CustomerProfile>("/customer/profile", { method: "PATCH", body: JSON.stringify(input) }),
   organizationStaff: (organizationId: string) => request<OrganizationStaffList>(`/organizations/${encodeURIComponent(organizationId)}/members`),
-  inviteOrganizationStaff: (organizationId: string, input: { email: string; roleKey: string }) => request<{ id: string; status: "INVITED"; roleKey: string }>(`/organizations/${encodeURIComponent(organizationId)}/members/invite`, { method: "POST", body: JSON.stringify(input) }),
+  inviteOrganizationStaff: (organizationId: string, input: { email: string; roleKey: string }) => request<{ id: string; status: "PENDING"; delivery: string }>(`/organizations/${encodeURIComponent(organizationId)}/staff-invitations`, { method: "POST", body: JSON.stringify(input) }),
   changeOrganizationStaffRole: (organizationId: string, id: string, roleKey: string) => request<unknown>(`/organizations/${encodeURIComponent(organizationId)}/members/${encodeURIComponent(id)}/role`, { method: "PATCH", body: JSON.stringify({ roleKey }) }),
   removeOrganizationStaff: (organizationId: string, id: string) => request<unknown>(`/organizations/${encodeURIComponent(organizationId)}/members/${encodeURIComponent(id)}`, { method: "DELETE" }),
   organizationInvitations: () => request<OrganizationInvitation[]>("/organization-invitations"),
@@ -261,6 +272,7 @@ export const api = {
   },
   platformQueue: (queue: string) => request<any>(`/platform/operations/${encodeURIComponent(queue)}?limit=100`),
   platformSuppliers: (query: { status?: string; search?: string } = {}) => request<any>(`/platform/suppliers?${new URLSearchParams({ limit: "100", ...(query.status ? { status: query.status } : {}), ...(query.search ? { search: query.search } : {}) })}`),
+  setSupplierOverseasEnabled: (id: string, enabled: boolean) => request<{ supplierId: string; overseasEnabled: boolean }>(`/platform/suppliers/${encodeURIComponent(id)}/overseas-shipping`, { method: "PATCH", body: JSON.stringify({enabled}) }),
   platformSupplierAction: (id: string, action: "approve" | "reject" | "suspend" | "reactivate", reason?: string) => request<any>(`/platform/suppliers/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify(reason ? { reason } : {}) }),
   platformCategories: () => request<any[]>("/platform/categories"),
   createPlatformCategory: (input: Record<string, unknown>) => request<any>("/platform/categories", { method: "POST", body: JSON.stringify(input) }),

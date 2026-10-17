@@ -30,4 +30,15 @@ Do not duplicate membership authorization in the UI. Keep `RbacService.organizat
 
 ## User interface
 
-Owner/managers with `organization.members.read` see `/supplier/:organizationId/staff`. Only `organization.members.manage` reveals invite/change/remove controls; owners and own memberships cannot be removed or delegated. The recipient accepts from `/account/invitations` and `SessionProvider.refresh` retrieves the newly active organization permissions. API membership state remains authoritative.
+Owner/managers with `organization.members.read` see `/supplier/:organizationId/staff`. Only `organization.staff.manage` reveals invite/change/remove controls; owners and own memberships cannot be removed or delegated. The recipient accepts from `/account/invitations` and `SessionProvider.refresh` retrieves the newly active organization permissions. API membership state remains authoritative.
+
+
+## Phase 2 delegated staff permission (in progress)
+
+Status: PARTIAL — branch `feature/supplier-staff-delegation-phase2`, not merged or CI-certified.
+
+The supplier staff mutation seam now checks `organization.staff.manage`, granted through the Prisma seed to organization.owner and organization.admin. The older `organization.members.manage` permission is retained for existing owner-only payout destination create/disable operations. The supplier staff UI uses the narrower permission. This prevents delegating staff management from silently granting supplier bank/M-Pesa destination mutation.
+
+**Not implemented by this increment:** unregistered-address invitations, verified email delivery, token acceptance, expiry/revocation/resend, password setup, browser QA, cross-tenant/role matrix regressions. The legacy invite endpoint still requires a registered WORKFORCE user. Do not present this branch as complete Phase 2.
+
+**Validation required:** reapply seed and check role permission deltas; verify supplier admin staff invite/change/remove and owner/self restrictions; prove supplier admin receives 403 on payout destination create/disable; verify existing owner payout behavior; run backend HTTP/PostgreSQL, frontend staff/payout tests and CI. New email invitation flow remains the next implementation seam.

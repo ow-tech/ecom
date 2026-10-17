@@ -4,10 +4,11 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const calls = vi.hoisted(() => ({
-  list: vi.fn(), invite: vi.fn(), changeRole: vi.fn(), remove: vi.fn(),
+  list: vi.fn(), invites: vi.fn(), invite: vi.fn(), resend: vi.fn(), revoke: vi.fn(), changeRole: vi.fn(), remove: vi.fn(),
 }));
 vi.mock("../lib/api", () => ({ api: {
-  organizationStaff: calls.list, inviteOrganizationStaff: calls.invite,
+  organizationStaff: calls.list, supplierStaffInvitations: calls.invites, inviteOrganizationStaff: calls.invite,
+  resendSupplierStaffInvitation: calls.resend, revokeSupplierStaffInvitation: calls.revoke,
   changeOrganizationStaffRole: calls.changeRole, removeOrganizationStaff: calls.remove,
 } }));
 import { SupplierStaffManagement } from "../components/supplier-staff-management";
@@ -21,11 +22,14 @@ const roles = [
   { key: "organization.fulfilment_staff", name: "Fulfilment staff" },
   { key: "organization.finance_viewer", name: "Finance viewer" },
 ];
-const management = ["organization.members.read", "organization.members.manage"];
+const management = ["organization.members.read", "organization.staff.manage"];
 
 beforeEach(() => {
   calls.list.mockResolvedValue({ members: [owner, staff], roles });
-  calls.invite.mockResolvedValue({ id: "new-invite", status: "INVITED" });
+  calls.invites.mockResolvedValue([]);
+  calls.resend.mockResolvedValue({ delivery: "ACCEPTED_BY_PROVIDER" });
+  calls.revoke.mockResolvedValue({ status: "REVOKED" });
+  calls.invite.mockResolvedValue({ id: "new-invite", status: "PENDING", delivery: "ACCEPTED_BY_PROVIDER" });
   calls.changeRole.mockResolvedValue({ id: "staff-membership", roleKey: "organization.finance_viewer" });
   calls.remove.mockResolvedValue({ id: "staff-membership", status: "REMOVED" });
   vi.stubGlobal("confirm", vi.fn(() => true));
