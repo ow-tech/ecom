@@ -348,7 +348,7 @@ describe("supplier domain integration", () => {
     const makeOrder = async (label: string) => {
       const attempt = await prisma.checkoutAttempt.create({ data: { customerProfileId: profile.id, cartId: cart.id, idempotencyKey: label } });
       return prisma.order.create({ data: {
-        customerProfileId: profile.id, checkoutAttemptId: attempt.id, orderNumber: slug(label),
+        customerProfileId: profile.id, checkoutAttemptId: attempt.id, orderNumber: `OA-${crypto.randomUUID()}`,
         currencyCode: "KES", subtotal: new Prisma.Decimal("12500"), total: new Prisma.Decimal("12500"),
         fulfillmentMethod: "PICKUP",
       } });
