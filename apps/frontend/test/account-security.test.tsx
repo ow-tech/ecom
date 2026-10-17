@@ -62,6 +62,7 @@ describe("account password security", () => {
     expect(screen.getByText(/If that address belongs to an account/)).toBeTruthy();
   });
   it("checks password confirmation before submitting reset token", async () => {
+    window.location.hash = "#token=test-recovery-token-long-enough";
     render(<ResetPasswordPage />);
     await userEvent.type(screen.getByLabelText("New password"), "NewVeryLongPassword54!");
     await userEvent.type(screen.getByLabelText("Confirm password"), "DifferentPassword!56");
