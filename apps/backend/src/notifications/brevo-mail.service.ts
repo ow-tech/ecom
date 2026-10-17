@@ -17,7 +17,7 @@ export class BrevoMailService {
     const key = this.config.get<string>("BREVO_API_KEY");
     const sender = this.config.get<string>("BREVO_FROM_EMAIL");
     const name = this.config.get<string>("BREVO_FROM_NAME") || "Ecom";
-    if (!key || !sender || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(sender))
+    if (!key || !sender || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sender))
       throw new ServiceUnavailableException("Transactional email is not configured");
     let response: Response;
     try {
@@ -43,6 +43,6 @@ export class BrevoMailService {
     if (url.protocol !== "https:" && !(this.config.get<string>("NODE_ENV") !== "production" && url.hostname === "localhost"))
       throw new ServiceUnavailableException("Invitation URL must use HTTPS");
     return this.send({ to, subject, category: "staff-invitation",
-      text: `You have been invited to join Ecom staff. This link expires and can only be used once:\\n\\n${url.toString()}\\n\\nIf you did not expect this invitation, ignore this email.` });
+      text: `You have been invited to join Ecom staff. This link expires and can only be used once:\n\n${url.toString()}\n\nIf you did not expect this invitation, ignore this email.` });
   }
 }
