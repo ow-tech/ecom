@@ -44,6 +44,12 @@ Status: PHASE_1_LOCAL_VERIFIED. Exclusive CUSTOMER/WORKFORCE identities, case-fo
 
 Phase 1 implementation: [account-audience-phase1.md](features/account-audience-phase1.md). Phases 2–3: [administrative-identities-invitations-plan.md](features/administrative-identities-invitations-plan.md)
 
+## Overseas-shipped supplier listings
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL — super-admin supplier capability, orderable overseas capacity and owned reservation settlement/expiry/release, customer/supplier/admin UI and immutable order ETA snapshots implemented in draft PR #2. Schema migration, CI, full checkout/payment regressions and browser QA remain unverified.
+
+Feature documentation: [overseas-shipped-listings.md](features/overseas-shipped-listings.md)
+
 ## Supplier Domain + Supplier Onboarding
 
 Status: Implemented

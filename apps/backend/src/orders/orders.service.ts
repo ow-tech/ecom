@@ -27,7 +27,7 @@ export class OrdersService {
 
   async list(userId: string) {
     const profile = await this.customer.ensureCustomerProfile(userId);
-    const orders = await this.prisma.order.findMany({ where: { customerProfileId: profile.id }, include: { supplierOrders: true, items: { select: { productNameSnapshot: true, variantNameSnapshot: true, quantity: true, unitPrice: true, lineTotal: true } } }, orderBy: { createdAt: "desc" } });
+    const orders = await this.prisma.order.findMany({ where: { customerProfileId: profile.id }, include: { supplierOrders: true, items: { select: { productNameSnapshot: true, variantNameSnapshot: true, quantity: true, unitPrice: true, lineTotal: true, originSnapshot: true, deliveryMinDaysSnapshot: true, deliveryMaxDaysSnapshot: true } } }, orderBy: { createdAt: "desc" } });
     return orders.map((order) => this.output(order));
   }
 

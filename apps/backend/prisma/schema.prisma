@@ -59,6 +59,11 @@ enum ProductVariantStatus {
   INACTIVE
 }
 
+enum ListingOrigin {
+  LOCAL
+  OVERSEAS
+}
+
 enum SupplierListingStatus {
   DRAFT
   ACTIVE
@@ -547,6 +552,7 @@ model Supplier {
   legalName          String?                  @db.VarChar(160)
   slug               String                   @unique @db.VarChar(140)
   status             SupplierStatus           @default(DRAFT)
+  overseasEnabled    Boolean                  @default(false)
   description        String?
   businessEmail      String?                  @db.VarChar(320)
   businessPhone      String?                  @db.VarChar(40)
@@ -651,6 +657,12 @@ model SupplierListing {
   price               Decimal               @db.Decimal(18, 2)
   currencyCode        String                @db.VarChar(3)
   status              SupplierListingStatus @default(DRAFT)
+  origin              ListingOrigin         @default(LOCAL)
+  deliveryMinDays     Int?
+  deliveryMaxDays     Int?
+  overseasOrderable   Int @default(0)
+  overseasReserved    Int @default(0)
+  overseasCommitted   Int @default(0)
   warrantyDays        Int?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
@@ -660,6 +672,7 @@ model SupplierListing {
   inventoryItems      InventoryItem[]
   cartItems           CartItem[]
   orderItems          OrderItem[]
+  overseasReservations OverseasReservation[]
 
   @@index([supplierId, status])
   @@index([productId, status])
@@ -823,6 +836,7 @@ model CheckoutAttempt {
   cart              Cart                   @relation(fields: [cartId], references: [id], onDelete: Restrict)
   order             Order?
   reservations      InventoryReservation[]
+  overseasReservations OverseasReservation[]
 
   @@unique([customerProfileId, idempotencyKey])
   @@index([cartId])
@@ -855,6 +869,7 @@ model Order {
   deliveryQuote           DeliveryQuote?
   items                   OrderItem[]
   supplierOrders          SupplierOrder[]
+  overseasReservations OverseasReservation[]
   statusHistory           OrderStatusHistory[]
   reservations            InventoryReservation[]
   payments                Payment[]
@@ -1081,6 +1096,9 @@ model OrderItem {
   lineTotal            Decimal             @db.Decimal(18, 2)
   currencyCode         String              @db.VarChar(3)
   warrantyDaysSnapshot Int?
+  originSnapshot       ListingOrigin @default(LOCAL)
+  deliveryMinDaysSnapshot Int?
+  deliveryMaxDaysSnapshot Int?
   createdAt            DateTime            @default(now())
   order                Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
   supplierOrder        SupplierOrder       @relation(fields: [supplierOrderId], references: [id], onDelete: Restrict)
@@ -1095,6 +1113,24 @@ model OrderItem {
 
   @@index([orderId])
   @@index([supplierOrderId])
+}
+
+model OverseasReservation {
+  id               String            @id @default(uuid()) @db.Uuid
+  supplierListingId String            @db.Uuid
+  checkoutAttemptId String            @db.Uuid
+  orderId          String            @db.Uuid
+  quantity         Int
+  status           ReservationStatus @default(ACTIVE)
+  expiresAt        DateTime
+  releasedAt       DateTime?
+  consumedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  listing          SupplierListing   @relation(fields: [supplierListingId], references: [id], onDelete: Restrict)
+  order            Order             @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  checkoutAttempt CheckoutAttempt @relation(fields: [checkoutAttemptId], references: [id], onDelete: Restrict)
+  @@unique([orderId,supplierListingId])
+  @@index([status,expiresAt])
 }
 
 model InventoryReservation {

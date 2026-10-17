@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { Prisma, ProductStatus, ProductVariantStatus, SupplierListingStatus, SupplierStatus } from "@prisma/client";
+import { ListingOrigin, Prisma, ProductStatus, ProductVariantStatus, SupplierListingStatus, SupplierStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 import { CreateSupplierListingDto, PlatformListingListDto, SupplierListingListDto, SupplierProductSelectionDto, UpdateSupplierListingDto } from "./dto/supplier-listing.dto";
@@ -14,6 +14,17 @@ export class SupplierListingsService {
     const supplier = await this.prisma.supplier.findUnique({ where: { organizationId } });
     if (!supplier) throw new NotFoundException("Supplier not found");
     return supplier;
+  }
+  private overseasFields(supplier: { overseasEnabled: boolean }, origin: ListingOrigin, min?: number | null, max?: number | null, capacity?: number) {
+    if (origin === ListingOrigin.LOCAL) {
+      if (min != null || max != null || (capacity ?? 0) !== 0) throw new BadRequestException("Local listings cannot have overseas estimates or orderable capacity");
+      return { origin, deliveryMinDays: null, deliveryMaxDays: null, overseasOrderable: 0 };
+    }
+    if (!supplier.overseasEnabled) throw new ConflictException("Super admin has not enabled overseas shipping for this supplier");
+    if (!Number.isInteger(min) || !Number.isInteger(max) || min! < 1 || max! > 365 || min! > max!)
+      throw new BadRequestException("Overseas listings require a valid delivery range from 1 to 365 days");
+    if (!Number.isInteger(capacity) || capacity! < 0 || capacity! > 1000000) throw new BadRequestException("Overseas orderable quantity must be 0–1000000");
+    return { origin, deliveryMinDays: min!, deliveryMaxDays: max!, overseasOrderable: capacity! };
   }
   private price(value: string): Prisma.Decimal {
     let price: Prisma.Decimal;
@@ -60,7 +71,10 @@ export class SupplierListingsService {
       data: listings.map(({ inventoryItems, supplier, product, productVariant, ...listing }) => ({
         id: listing.id, product, productVariant, supplier: { id: supplier.id, displayName: supplier.displayName },
         price: listing.price.toFixed(2), currencyCode: listing.currencyCode, status: listing.status,
-        availability: inventoryItems.some(item => item.onHand > item.reserved) ? "IN_STOCK" : "OUT_OF_STOCK",
+        origin: listing.origin, deliveryMinDays: listing.deliveryMinDays, deliveryMaxDays: listing.deliveryMaxDays,
+        availability: listing.origin === ListingOrigin.OVERSEAS
+          ? (listing.overseasOrderable > listing.overseasReserved + listing.overseasCommitted ? "AVAILABLE_TO_ORDER" : "OUT_OF_STOCK")
+          : (inventoryItems.some(item => item.onHand > item.reserved) ? "IN_STOCK" : "OUT_OF_STOCK"),
         createdAt: listing.createdAt, updatedAt: listing.updatedAt,
       })),
       page: query.page, limit: query.limit, total,
@@ -94,7 +108,7 @@ export class SupplierListingsService {
     const supplier = await this.supplierForOrganization(userId, organizationId, "catalogue.listings.create");
     const { product } = await this.productAndVariant(dto.productId, dto.productVariantId);
     try {
-      const listing = await this.prisma.supplierListing.create({ data: { supplierId: supplier.id, productId: product.id, productVariantId: dto.productVariantId, supplierSku: dto.supplierSku?.trim() || null, titleOverride: dto.titleOverride?.trim() || null, descriptionOverride: dto.descriptionOverride?.trim() || null, price: this.price(dto.price), currencyCode: dto.currencyCode, warrantyDays: dto.warrantyDays, status: SupplierListingStatus.DRAFT }, include: { product: true, productVariant: true } });
+      const listing = await this.prisma.supplierListing.create({ data: { supplierId: supplier.id, productId: product.id, productVariantId: dto.productVariantId, supplierSku: dto.supplierSku?.trim() || null, titleOverride: dto.titleOverride?.trim() || null, descriptionOverride: dto.descriptionOverride?.trim() || null, price: this.price(dto.price), currencyCode: dto.currencyCode, warrantyDays: dto.warrantyDays, status: SupplierListingStatus.DRAFT, ...this.overseasFields(supplier, dto.origin ?? ListingOrigin.LOCAL, dto.deliveryMinDays, dto.deliveryMaxDays, dto.overseasOrderable ?? 0) }, include: { product: true, productVariant: true } });
       return this.response(listing);
     } catch (error) { if ((error as { code?: string }).code === "P2002") throw new ConflictException("Supplier already has an offer for this product and variant"); throw error; }
   }
@@ -102,13 +116,27 @@ export class SupplierListingsService {
     const supplier = await this.supplierForOrganization(userId, organizationId, "catalogue.listings.update");
     const existing = await this.prisma.supplierListing.findFirst({ where: { id: listingId, supplierId: supplier.id } });
     if (!existing) throw new NotFoundException("Supplier listing not found");
-    const listing = await this.prisma.supplierListing.update({ where: { id: existing.id }, data: { ...(dto.supplierSku !== undefined ? { supplierSku: dto.supplierSku.trim() || null } : {}), ...(dto.titleOverride !== undefined ? { titleOverride: dto.titleOverride.trim() || null } : {}), ...(dto.descriptionOverride !== undefined ? { descriptionOverride: dto.descriptionOverride.trim() || null } : {}), ...(dto.price !== undefined ? { price: this.price(dto.price) } : {}), ...(dto.currencyCode !== undefined ? { currencyCode: dto.currencyCode } : {}), ...(dto.warrantyDays !== undefined ? { warrantyDays: dto.warrantyDays } : {}) }, include: { product: true, productVariant: true } });
+    const requestedOrigin = dto.origin ?? existing.origin;
+    if (requestedOrigin === ListingOrigin.LOCAL &&
+      (existing.overseasReserved > 0 || existing.overseasCommitted > 0))
+      throw new ConflictException("Overseas commitments exist; keep this listing overseas or create a separate local offer");
+    if (requestedOrigin === ListingOrigin.OVERSEAS &&
+      (dto.overseasOrderable ?? existing.overseasOrderable) < existing.overseasReserved + existing.overseasCommitted)
+      throw new ConflictException("Orderable quantity cannot be less than already reserved or paid units");
+    const listing = await this.prisma.supplierListing.update({ where: { id: existing.id }, data: { ...(dto.supplierSku !== undefined ? { supplierSku: dto.supplierSku.trim() || null } : {}), ...(dto.titleOverride !== undefined ? { titleOverride: dto.titleOverride.trim() || null } : {}), ...(dto.descriptionOverride !== undefined ? { descriptionOverride: dto.descriptionOverride.trim() || null } : {}), ...(dto.price !== undefined ? { price: this.price(dto.price) } : {}), ...(dto.currencyCode !== undefined ? { currencyCode: dto.currencyCode } : {}), ...(dto.warrantyDays !== undefined ? { warrantyDays: dto.warrantyDays } : {}),
+      ...(dto.origin !== undefined || dto.deliveryMinDays !== undefined || dto.deliveryMaxDays !== undefined || dto.overseasOrderable !== undefined
+        ? this.overseasFields(supplier, dto.origin ?? existing.origin,
+            requestedOrigin === ListingOrigin.LOCAL ? null : dto.deliveryMinDays !== undefined ? dto.deliveryMinDays : existing.deliveryMinDays,
+            requestedOrigin === ListingOrigin.LOCAL ? null : dto.deliveryMaxDays !== undefined ? dto.deliveryMaxDays : existing.deliveryMaxDays,
+            requestedOrigin === ListingOrigin.LOCAL ? 0 : dto.overseasOrderable !== undefined ? dto.overseasOrderable : existing.overseasOrderable) : {}) }, include: { product: true, productVariant: true } });
     return this.response(listing);
   }
   private async eligibleForActivation(id: string) {
     const listing = await this.prisma.supplierListing.findUnique({ where: { id }, include: { supplier: true, product: true, productVariant: true } });
     if (!listing) throw new NotFoundException("Supplier listing not found");
     if (listing.supplier.status !== SupplierStatus.ACTIVE) throw new ConflictException("Only active suppliers can activate listings");
+    if (listing.origin === ListingOrigin.OVERSEAS && !listing.supplier.overseasEnabled) throw new ConflictException("Overseas shipping not authorized");
+    if (listing.origin === ListingOrigin.OVERSEAS && listing.overseasOrderable <= listing.overseasReserved + listing.overseasCommitted) throw new ConflictException("Overseas orderable capacity is exhausted");
     if (listing.product.status !== ProductStatus.ACTIVE) throw new ConflictException("Only active products can back active listings");
     if (listing.productVariant && listing.productVariant.status !== ProductVariantStatus.ACTIVE) throw new ConflictException("Only active variants can back active listings");
     if (!listing.price.greaterThan(0) || !/^[A-Z]{3}$/.test(listing.currencyCode)) throw new ConflictException("Listing price or currency is invalid");
