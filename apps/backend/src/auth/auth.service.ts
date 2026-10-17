@@ -21,7 +21,7 @@ export class AuthService {
     try {
       const user = await this.prisma.$transaction(async (tx) => {
         // INV-IDENTITY: serialize against staff invitations before claiming an email.
-        await tx.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${emailNormalized}, 0))`);
+        await tx.$queryRaw(Prisma.sql`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${emailNormalized}, 0))) advisory_lock`);
         if (accountAudience === AccountAudience.CUSTOMER) {
           const reserved = await tx.staffInvitation.findFirst({ where: {
             emailNormalized, status: "PENDING", expiresAt: { gt: new Date() },
