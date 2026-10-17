@@ -126,7 +126,7 @@ export class AuthService {
     url.hash = new URLSearchParams({ token: rawToken }).toString();
     let sent = false;
     try {
-      await this.mail.send({ to: user.email, subject: "Reset your Ecom password", category: "password-reset", text: "Use this link within 30 minutes: " + url.toString() + "\\nIf you did not request this, ignore this email." });
+      await this.mail.send({ to: user.email, subject: "Reset your Ecom password", category: "password-reset", text: "Use this link within 30 minutes: " + url.toString() + "\nIf you did not request this, ignore this email." });
       sent = true;
     } catch { /* Never include provider errors or user identity in the response. */ }
     if (!sent) {
