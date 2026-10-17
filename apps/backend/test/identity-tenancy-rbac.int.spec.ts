@@ -300,49 +300,33 @@ describe("identity, tenancy, and RBAC integration", () => {
     await expect(rbac.organizationContext(member.id, target.id, "organization.update")).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it("supports owner-scoped staff invitation, least-privilege role changes, acceptance and revocation", async () => {
+  it("retires legacy staff invitations while preserving membership role enforcement and revocation", async () => {
     const owner = await register("staff-owner");
     const member = await register("staff-member");
     const other = await register("staff-outsider");
     const target = await organization(owner.cookie, "staff-org");
     const otherOrg = await organization(other.cookie, "staff-other-org");
     const url = `/organizations/${target.id}/members`;
-    const prohibited = await http("POST", `${url}/invite`, { email: member.email, roleKey: "organization.owner" }, owner.cookie);
-    expect(prohibited.status).toBe(400);
-    const unowned = await http("POST", `${url}/invite`, { email: member.email, roleKey: "organization.member" }, other.cookie);
-    expect(unowned.status).toBe(403);
-    const invited = await http("POST", `${url}/invite`, { email: member.email, roleKey: "organization.inventory_staff" }, owner.cookie);
-    expect(invited.status).toBe(201);
-    const membershipId = (invited.body as { id: string }).id;
-    expect((await http("GET", `/organizations/${target.id}`, undefined, member.cookie)).status).toBe(403);
-    const invitations = await http("GET", "/organization-invitations", undefined, member.cookie);
-    expect(invitations.status).toBe(200);
-    expect(invitations.body).toEqual(expect.arrayContaining([expect.objectContaining({ id: membershipId, organizationId: target.id, roleKey: "organization.inventory_staff" })]));
-    expect((await http("POST", `/organization-invitations/${membershipId}/accept`, undefined, other.cookie)).status).toBe(404);
-    expect((await http("POST", `/organization-invitations/${membershipId}/accept`, undefined, member.cookie)).status).toBe(201);
+    expect((await http("POST", `${url}/invite`, { email: member.email, roleKey: "organization.owner" }, owner.cookie)).status).toBe(410);
+    expect((await http("POST", `${url}/invite`, { email: member.email, roleKey: "organization.member" }, other.cookie)).status).toBe(410);
+    const membership = await prisma.organizationMembership.create({ data: { organizationId: target.id, userId: member.id, status: MembershipStatus.ACTIVE } });
+    const role = await prisma.role.findUniqueOrThrow({ where: { key: "organization.inventory_staff" } });
+    await prisma.membershipRole.create({ data: { membershipId: membership.id, roleId: role.id } });
     expect((await http("GET", `/organizations/${target.id}`, undefined, member.cookie)).status).toBe(200);
-    expect((await http("GET", `${url}`, undefined, member.cookie)).status).toBe(403);
-    expect((await http("POST", `${url}/invite`, { email: other.email, roleKey: "organization.member" }, member.cookie)).status).toBe(403);
+    expect((await http("GET", url, undefined, member.cookie)).status).toBe(403);
     await expect(rbac.organizationContext(member.id, target.id, "inventory.adjust")).resolves.toBeDefined();
     await expect(rbac.organizationContext(member.id, target.id, "finance.read")).rejects.toBeInstanceOf(ForbiddenException);
-    expect((await http("PATCH", `${url}/${membershipId}/role`, { roleKey: "organization.owner" }, owner.cookie)).status).toBe(400);
-    expect((await http("PATCH", `${url}/${membershipId}/role`, { roleKey: "organization.finance_viewer" }, owner.cookie)).status).toBe(200);
+    expect((await http("PATCH", `${url}/${membership.id}/role`, { roleKey: "organization.owner" }, owner.cookie)).status).toBe(400);
+    expect((await http("PATCH", `${url}/${membership.id}/role`, { roleKey: "organization.finance_viewer" }, owner.cookie)).status).toBe(200);
     await expect(rbac.organizationContext(member.id, target.id, "finance.read")).resolves.toBeDefined();
     await expect(rbac.organizationContext(member.id, target.id, "inventory.adjust")).rejects.toBeInstanceOf(ForbiddenException);
-    expect((await http("DELETE", `${url}/${membershipId}`, undefined, owner.cookie)).status).toBe(200);
+    expect((await http("DELETE", `${url}/${membership.id}`, undefined, owner.cookie)).status).toBe(200);
     expect((await http("GET", `/organizations/${target.id}`, undefined, member.cookie)).status).toBe(403);
-    expect((await http("DELETE", `${url}/${membershipId}`, undefined, owner.cookie)).status).toBe(200);
+    expect((await http("DELETE", `${url}/${membership.id}`, undefined, owner.cookie)).status).toBe(200);
     const ownerMember = await prisma.organizationMembership.findUniqueOrThrow({ where: { organizationId_userId: { organizationId: target.id, userId: owner.id } } });
     expect((await http("DELETE", `${url}/${ownerMember.id}`, undefined, owner.cookie)).status).toBe(403);
     expect((await http("PATCH", `${url}/${ownerMember.id}/role`, { roleKey: "organization.member" }, owner.cookie)).status).toBe(403);
-    expect((await http("POST", `/organizations/${otherOrg.id}/members/invite`, { email: member.email, roleKey: "organization.member" }, owner.cookie)).status).toBe(403);
-    const reinvite = await http("POST", `${url}/invite`, { email: member.email, roleKey: "organization.fulfilment_staff" }, owner.cookie);
-    expect(reinvite.status).toBe(201);
-    expect((reinvite.body as { id: string }).id).toBe(membershipId);
-    expect((await http("GET", `/organizations/${target.id}`, undefined, member.cookie)).status).toBe(403);
-    expect((await http("POST", `/organization-invitations/${membershipId}/accept`, undefined, member.cookie)).status).toBe(201);
-    await expect(rbac.organizationContext(member.id, target.id, "fulfilment.update")).resolves.toBeDefined();
-    await expect(rbac.organizationContext(member.id, target.id, "inventory.adjust")).rejects.toBeInstanceOf(ForbiddenException);
+    expect((await http("DELETE", `/organizations/${otherOrg.id}/members/${membership.id}`, undefined, owner.cookie)).status).toBe(403);
   });
 
   it("enforces separate customer/workforce email audiences across API and direct database mutations", async () => {
@@ -368,7 +352,7 @@ describe("identity, tenancy, and RBAC integration", () => {
     expect((await http("POST", "/auth/workforce/register", { email: customer.email.toUpperCase(), password })).status).toBe(409);
     expect((await http("POST", "/auth/register", { email: email("audience-worker").toUpperCase(), password })).status).toBe(409);
     const invitation = await http("POST", `/organizations/${organizationRow.id}/members/invite`, { email: customer.email, roleKey: "organization.member" }, workforce.cookie);
-    expect(invitation.status).toBe(404);
+    expect(invitation.status).toBe(410);
   });
 
   it("atomically reserves the same normalized email for only one audience under registration races", async () => {
