@@ -84,7 +84,7 @@ export class StaffInvitationsService {
       await this.manager(tx, actorId, scope, organizationId);
       await this.allowed(tx, actorId, scope, roleKey);
       // Serialize races with customer registration and active workforce records.
-      await tx.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${normalized}, 0))`);
+      await tx.$queryRaw(Prisma.sql`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${normalized}, 0))) advisory_lock`);
       const existing = await tx.user.findFirst({ where: { emailNormalized: normalized },
         select: { id: true, accountAudience: true, status: true } });
       if (existing && (existing.accountAudience !== AccountAudience.WORKFORCE || existing.status !== UserStatus.ACTIVE || existing.id === actorId))
@@ -183,7 +183,7 @@ export class StaffInvitationsService {
       const invitation = await tx.staffInvitation.findUniqueOrThrow({ where: { id: candidate.id } });
       if (invitation.status !== StaffInvitationStatus.PENDING || invitation.expiresAt <= new Date() || invitation.tokenHash !== tokenHash)
         throw new BadRequestException("Invalid or expired invitation");
-      await tx.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${invitation.emailNormalized}, 0))`);
+      await tx.$queryRaw(Prisma.sql`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${invitation.emailNormalized}, 0))) advisory_lock`);
       let user = await tx.user.findFirst({ where: { emailNormalized: invitation.emailNormalized } });
       if (user && (user.accountAudience !== AccountAudience.WORKFORCE || user.status !== UserStatus.ACTIVE))
         throw new ConflictException("Email is unavailable for staff activation");
