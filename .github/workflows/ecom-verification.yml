@@ -2,7 +2,7 @@ name: ECOM verification
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, 'integration/ecom-unified-qa']
   workflow_dispatch:
 
 permissions:
