@@ -33,7 +33,7 @@ export class PaymentSettlementService {
       if (normalized !== PaymentStatus.SUCCEEDED) throw new ConflictException("Provider evidence is not successful");
 
       await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Order" WHERE "id" = ${payment.orderId}::uuid FOR UPDATE`);
-      const order = await tx.order.findUniqueOrThrow({ where: { id: payment.orderId }, include: { reservations: true, customerProfile: { select: { userId: true } } } });
+      const order = await tx.order.findUniqueOrThrow({ where: { id: payment.orderId }, include: { reservations: true, overseasReservations: true, customerProfile: { select: { userId: true } } } });
       if (payment.status === PaymentStatus.SUCCEEDED) {
         return order.status === OrderStatus.PAYMENT_REVIEW ? "PAYMENT_REVIEW" : "ALREADY_SETTLED";
       }
@@ -55,7 +55,10 @@ export class PaymentSettlementService {
         failureMessage: null,
       } as const;
 
-      const reservationsActive = order.reservations.length > 0 && order.reservations.every((reservation) => reservation.status === "ACTIVE");
+      // Both physical and overseas allocations must be active before fulfillment can start.
+      const reservationsActive = (order.reservations.length + order.overseasReservations.length) > 0
+        && order.reservations.every((reservation) => reservation.status === "ACTIVE")
+        && order.overseasReservations.every((reservation) => reservation.status === "ACTIVE");
       if (order.status !== OrderStatus.PENDING_PAYMENT || order.paymentStatus !== OrderPaymentStatus.UNPAID || !reservationsActive) {
         await tx.payment.update({ where: { id: payment.id }, data: providerData });
         if (order.status !== OrderStatus.PAYMENT_REVIEW || order.paymentStatus !== OrderPaymentStatus.PAID_REVIEW) {
