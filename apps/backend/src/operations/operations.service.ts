@@ -43,7 +43,8 @@ export class OperationalOutboxService {
   async summary() {
     const activeSupport = { not: "CLOSED" as const };
     const overdue = { ...activeSupport, resolutionDueAt: { lt: new Date() } };
-    const [supportOpen, supportUnassigned, supportOverdue, supportUrgent, paymentReview, paymentUnknown, awaitingDeliveryQuote, readyForPickup, outForDelivery, refundsPendingReview, refundsProviderUnknown, returnsPendingReview, warrantiesPendingReview, settlementsDraft, settlementsApproved, outboxPending, outboxFailed] = await this.prisma.$transaction([
+    const [suppliersPendingReview, supportOpen, supportUnassigned, supportOverdue, supportUrgent, paymentReview, paymentUnknown, awaitingDeliveryQuote, readyForPickup, outForDelivery, refundsPendingReview, refundsProviderUnknown, returnsPendingReview, warrantiesPendingReview, settlementsDraft, settlementsApproved, outboxPending, outboxFailed] = await this.prisma.$transaction([
+      this.prisma.supplier.count({ where: { status: "PENDING_REVIEW" } }),
       this.prisma.supportTicket.count({ where: { status: "OPEN" } }),
       this.prisma.supportTicket.count({ where: { ...activeSupport, assignedToUserId: null } }),
       this.prisma.supportTicket.count({ where: overdue }),
@@ -62,7 +63,7 @@ export class OperationalOutboxService {
       this.prisma.operationalOutboxEvent.count({ where: { status: "PENDING" } }),
       this.prisma.operationalOutboxEvent.count({ where: { status: "FAILED" } }),
     ]);
-    return { support: { open: supportOpen, unassigned: supportUnassigned, overdue: supportOverdue, urgent: supportUrgent }, payments: { paymentReview, unknown: paymentUnknown }, orders: { awaitingDeliveryQuote, readyForPickup, outForDelivery }, refunds: { pendingReview: refundsPendingReview, providerUnknown: refundsProviderUnknown }, returns: { pendingReview: returnsPendingReview }, warranties: { pendingReview: warrantiesPendingReview }, settlements: { draft: settlementsDraft, approved: settlementsApproved }, outbox: { pending: outboxPending, failed: outboxFailed } };
+    return { suppliers: { pendingReview: suppliersPendingReview }, support: { open: supportOpen, unassigned: supportUnassigned, overdue: supportOverdue, urgent: supportUrgent }, payments: { paymentReview, unknown: paymentUnknown }, orders: { awaitingDeliveryQuote, readyForPickup, outForDelivery }, refunds: { pendingReview: refundsPendingReview, providerUnknown: refundsProviderUnknown }, returns: { pendingReview: returnsPendingReview }, warranties: { pendingReview: warrantiesPendingReview }, settlements: { draft: settlementsDraft, approved: settlementsApproved }, outbox: { pending: outboxPending, failed: outboxFailed } };
   }
 
   async queue(kind: "payment-review" | "delivery-quotes" | "refunds" | "returns" | "warranties" | "settlements" | "support-overdue" | "outbox-failures", page = 1, limit = 50) {
