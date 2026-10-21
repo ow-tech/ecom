@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { type FormEvent, Suspense, useEffect, useState } from "react";
 import { api } from "../../../lib/api";
-import { Alert, Button, FormField, Input } from "../../../components/ui";
+import { Alert, Button, FormField } from "../../../components/ui";
+import { PasswordInput } from "../../../components/password-input";
 
 function ResetContent() {
   const [token, setToken] = useState("");
@@ -33,8 +34,8 @@ function ResetContent() {
     {!token && !complete ? <div className="mt-6"><Alert tone="error">The recovery token is missing.</Alert><Link className="mt-4 inline-block text-secondary" href="/forgot-password">Request a new link</Link></div> :
       complete ? <div className="mt-6"><Alert tone="success">Password updated. All previous sessions were signed out.</Alert><Link className="mt-5 inline-block font-semibold text-secondary" href="/login">Sign in</Link></div> :
       <form className="mt-7 space-y-5" onSubmit={submit}>{error && <Alert tone="error">{error}</Alert>}
-        <FormField label="New password"><Input type="password" autoComplete="new-password" minLength={12} maxLength={256} required value={password} onChange={e => setPassword(e.target.value)} /></FormField>
-        <FormField label="Confirm password"><Input type="password" autoComplete="new-password" minLength={12} maxLength={256} required value={confirm} onChange={e => setConfirm(e.target.value)} /></FormField>
+        <FormField label="New password"><PasswordInput autoComplete="new-password" minLength={12} maxLength={256} required value={password} onChange={e => setPassword(e.target.value)} /></FormField>
+        <FormField label="Confirm password"><PasswordInput autoComplete="new-password" minLength={12} maxLength={256} required value={confirm} onChange={e => setConfirm(e.target.value)} /></FormField>
         <Button type="submit" className="w-full" loading={working}>Save new password</Button>
       </form>}
   </>;
