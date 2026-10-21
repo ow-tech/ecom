@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import { InventoryMovementType, ListingOrigin, Prisma, ReservationStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service"; import { RbacService } from "../rbac/rbac.service";
 import { AuditService } from "../audit/audit.service";
-import { AdjustStockDto, CreateInventoryLocationDto, InventoryListDto, ItemQuantityDto, ReceiveStockDto, UpdateInventoryLocationDto } from "./dto/inventory.dto";
+import { AdjustStockDto, CreateInventoryLocationDto, InventoryListDto, InventoryView, ItemQuantityDto, ReceiveStockDto, UpdateInventoryLocationDto } from "./dto/inventory.dto";
 
 type RawItem = { id: string; onHand: number; reserved: number };
 @Injectable() export class InventoryService {
@@ -14,7 +14,31 @@ type RawItem = { id: string; onHand: number; reserved: number };
   async getLocation(userId: string, organizationId: string, id: string) { const supplier = await this.supplier(userId, organizationId, "inventory.locations.read"); const location = await this.prisma.inventoryLocation.findFirst({ where: { id, supplierId: supplier.id } }); if (!location) throw new NotFoundException("Inventory location not found"); return location; }
   async updateLocation(userId: string, organizationId: string, id: string, dto: UpdateInventoryLocationDto) { await this.getLocation(userId, organizationId, id); await this.supplier(userId, organizationId, "inventory.locations.manage"); try { return await this.prisma.inventoryLocation.update({ where: { id }, data: dto }); } catch (e) { if ((e as { code?: string }).code === "P2002") throw new ConflictException("Location code already exists for this supplier"); throw e; } }
   private async itemFor(userId: string, organizationId: string, id: string, permission: string) { const supplier = await this.supplier(userId, organizationId, permission); const item = await this.prisma.inventoryItem.findFirst({ where: { id, supplierListing: { supplierId: supplier.id }, inventoryLocation: { supplierId: supplier.id } }, include: { supplierListing: true, inventoryLocation: true } }); if (!item) throw new NotFoundException("Inventory item not found"); return item; }
-  async list(userId: string, organizationId: string, q: InventoryListDto) { const supplier = await this.supplier(userId, organizationId, "inventory.read"); const where = { supplierListing: { supplierId: supplier.id }, inventoryLocation: { supplierId: supplier.id } }; const [total, data] = await this.prisma.$transaction([this.prisma.inventoryItem.count({ where }), this.prisma.inventoryItem.findMany({ where, include: { supplierListing: true, inventoryLocation: true }, orderBy: { createdAt: "asc" }, skip: (q.page - 1) * q.limit, take: q.limit })]); return { data: data.map((x) => this.output(x)), page: q.page, limit: q.limit, total }; }
+  async list(userId: string, organizationId: string, q: InventoryListDto) {
+    const supplier = await this.supplier(userId, organizationId, "inventory.read");
+    // Match the exact stock-attention predicate used by Supplier.overview. All
+    // filtering happens before pagination; KPI links cannot silently miss rows.
+    const predicate = q.view === InventoryView.ATTENTION ? Prisma.sql`AND item."onHand" <= item."reserved"`
+      : q.view === InventoryView.RESERVED ? Prisma.sql`AND item."reserved" > 0`
+      : q.view === InventoryView.INACTIVE ? Prisma.sql`AND listing."status" = 'INACTIVE'`
+      : Prisma.empty;
+    const base = Prisma.sql`FROM "InventoryItem" item
+      JOIN "SupplierListing" listing ON listing."id" = item."supplierListingId"
+      JOIN "InventoryLocation" location ON location."id" = item."inventoryLocationId"
+      WHERE listing."supplierId" = ${supplier.id}::uuid AND location."supplierId" = ${supplier.id}::uuid ${predicate}`;
+    const [count, found] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ total: number }>>(Prisma.sql`SELECT COUNT(*)::int AS "total" ${base}`),
+      this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT item."id" ${base}
+        ORDER BY item."createdAt" ASC, item."id" ASC LIMIT ${q.limit} OFFSET ${(q.page - 1) * q.limit}`),
+    ]);
+    const ids = found.map(row => row.id);
+    const rows = await this.prisma.inventoryItem.findMany({
+      where: { id: { in: ids } }, include: { supplierListing: true, inventoryLocation: true },
+    });
+    const byId = new Map(rows.map(row => [row.id, row]));
+    return { data: ids.map(id => byId.get(id)).filter((row): row is typeof rows[number] => Boolean(row)).map(row => this.output(row)),
+      page: q.page, limit: q.limit, total: count[0]?.total ?? 0 };
+  }
   async get(userId: string, organizationId: string, id: string) { return this.output(await this.itemFor(userId, organizationId, id, "inventory.read")); }
   async receive(userId: string, organizationId: string, dto: ReceiveStockDto) { const supplier = await this.supplier(userId, organizationId, "inventory.adjust"); const [listing, location] = await Promise.all([this.prisma.supplierListing.findFirst({ where: { id: dto.supplierListingId, supplierId: supplier.id } }), this.prisma.inventoryLocation.findFirst({ where: { id: dto.inventoryLocationId, supplierId: supplier.id } })]); if (!listing || !location) throw new NotFoundException("Supplier listing or inventory location not found"); return this.prisma.$transaction(async (tx) => { const rows = await tx.$queryRaw<RawItem[]>(Prisma.sql`INSERT INTO "InventoryItem" ("id", "supplierListingId", "inventoryLocationId", "onHand", "reserved", "createdAt", "updatedAt") VALUES (gen_random_uuid(), ${listing.id}::uuid, ${location.id}::uuid, ${dto.quantity}, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT ("supplierListingId", "inventoryLocationId") DO UPDATE SET "onHand" = "InventoryItem"."onHand" + EXCLUDED."onHand", "updatedAt" = CURRENT_TIMESTAMP RETURNING "id", "onHand", "reserved"`); const item = rows[0]; await tx.inventoryMovement.create({ data: { inventoryItemId: item.id, type: InventoryMovementType.STOCK_IN, quantity: dto.quantity, previousOnHand: item.onHand - dto.quantity, newOnHand: item.onHand, referenceType: dto.referenceType, referenceId: dto.referenceId, actorUserId: userId } }); return this.output(item); }); }
   private async physical(userId: string, organizationId: string, id: string, quantity: number, type: InventoryMovementType, reason?: string, referenceType?: string, referenceId?: string) { await this.itemFor(userId, organizationId, id, "inventory.adjust"); return this.prisma.$transaction(async (tx) => { const rows = await tx.$queryRaw<RawItem[]>(Prisma.sql`UPDATE "InventoryItem" SET "onHand" = "onHand" + ${quantity}, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ${id}::uuid AND "onHand" + ${quantity} >= "reserved" RETURNING "id", "onHand", "reserved"`); if (!rows[0]) throw new ConflictException("Insufficient unreserved stock"); const item = rows[0]; const movement = await tx.inventoryMovement.create({ data: { inventoryItemId: id, type, quantity: Math.abs(quantity), previousOnHand: item.onHand - quantity, newOnHand: item.onHand, reason, referenceType, referenceId, actorUserId: userId } }); if (type === InventoryMovementType.ADJUSTMENT_IN || type === InventoryMovementType.ADJUSTMENT_OUT) await this.audit.emitInTransaction(tx, { actorUserId: userId, action: "INVENTORY_MANUAL_ADJUSTMENT", entityType: "INVENTORY_ITEM", entityId: id, dedupeKey: `inventory-movement:${movement.id}:audit`, metadata: { movementId: movement.id, type, quantity, reason: reason ?? null } }); return this.output(item); }); }
