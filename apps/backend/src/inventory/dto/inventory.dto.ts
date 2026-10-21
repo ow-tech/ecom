@@ -29,4 +29,5 @@ export class UpdateInventoryLocationDto {
 export class ReceiveStockDto { @IsUUID() supplierListingId!: string; @IsUUID() inventoryLocationId!: string; @Type(() => Number) @IsInt() @Min(1) quantity!: number; @IsOptional() @IsString() @MaxLength(80) @Transform(upper) referenceType?: string; @IsOptional() @IsString() @MaxLength(120) @Transform(trim) referenceId?: string; }
 export class ItemQuantityDto { @Type(() => Number) @IsInt() @Min(1) quantity!: number; @IsOptional() @IsString() @MaxLength(80) @Transform(upper) referenceType?: string; @IsOptional() @IsString() @MaxLength(120) @Transform(trim) referenceId?: string; }
 export class AdjustStockDto { @IsUUID() inventoryItemId!: string; @Type(() => Number) @IsInt() quantity!: number; @IsString() @MaxLength(1000) @Transform(trim) reason!: string; }
-export class InventoryListDto { @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1; @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 25; }
+export enum InventoryView { ALL = "ALL", ATTENTION = "ATTENTION", RESERVED = "RESERVED", INACTIVE = "INACTIVE" }
+export class InventoryListDto { @IsOptional() @IsEnum(InventoryView) view: InventoryView = InventoryView.ALL; @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1; @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 25; }
