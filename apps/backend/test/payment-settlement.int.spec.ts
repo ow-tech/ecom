@@ -309,6 +309,9 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
   it("preserves captured-payment truth after cancellation without consuming released stock", async () => {
     const fixture = await createOrder("cancel-late", "6.00", 1);
     const initializedPayment = await initialize(fixture);
+    const originalCart = await prisma.checkoutAttempt.findUniqueOrThrow({ where: { order: { id: fixture.orderId } }, select: { cartId: true } });
+    // The client may already have created a fresh empty cart after checkout prepared the order.
+    expect((await http("GET", "/customer/cart", undefined, fixture.customer.cookie)).status).toBe(200);
     // A pending authorization must never be discarded just because the customer wants to leave.
     expect((await http("POST", `/customer/orders/${fixture.orderId}/cancel`, { reason: "Cannot abandon unresolved authorization" }, fixture.customer.cookie)).status).toBe(409);
     expect(await prisma.inventoryReservation.count({ where: { orderId: fixture.orderId, status: "ACTIVE" } })).toBeGreaterThan(0);
@@ -316,6 +319,10 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
     const verified = await http("POST", `/customer/orders/${fixture.orderId}/payments/${initializedPayment.body.paymentId}/verify`, undefined, fixture.customer.cookie);
     expect(verified.body.status).toBe("FAILED");
     expect((await http("POST", `/customer/orders/${fixture.orderId}/cancel`, { reason: "Failed authorization; abandon checkout" }, fixture.customer.cookie)).status).toBe(201);
+    const restoredCart = await prisma.cart.findUniqueOrThrow({ where: { id: originalCart.cartId }, include: { items: true } });
+    expect(restoredCart.status).toBe("ACTIVE");
+    expect(restoredCart.items).toHaveLength(1);
+    expect((await http("GET", "/customer/cart", undefined, fixture.customer.cookie)).body.items).toHaveLength(1);
     expect(await expiry.expireOrder(fixture.orderId)).toEqual({ expired: 0, orderExpired: false });
     expect((await webhook(successEvent(initializedPayment.body.reference, fixture.totalMinor, fixture.customerEmail))).body.result).toBe("PAYMENT_REVIEW");
     expect(await prisma.order.findUniqueOrThrow({ where: { id: fixture.orderId } })).toEqual(expect.objectContaining({ status: "PAYMENT_REVIEW", paymentStatus: "PAID_REVIEW" }));
