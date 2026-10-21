@@ -24,6 +24,8 @@ export function PlatformAfterSales({ permissions }: { permissions: string[] }) {
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [choice, setChoice] = useState<Choice>();
+  const [refundFilter, setRefundFilter] = useState<"ALL" | "PENDING">("ALL");
+  useEffect(() => { if (new URLSearchParams(window.location.search).get("focus") === "refunds-pending") setRefundFilter("PENDING"); }, []);
   const requestSequence = useRef(0);
   const load = useCallback(async (): Promise<boolean> => {
     const current = ++requestSequence.current;
@@ -60,9 +62,10 @@ export function PlatformAfterSales({ permissions }: { permissions: string[] }) {
     {error && <ErrorState detail={error} retry={() => void load()} />}
     {notice && <Alert tone="success">{notice}</Alert>}
     {loading ? <Skeleton className="h-56" /> : <>
-      {refundRead && <Card><SectionHeader title="Refund requests" description="Approve only customer-owned refund requests. Provider execution remains an explicit, evidence-led action."/>
-        {!refunds.length ? <div className="mt-4"><EmptyState title="No refund requests" detail="Requests from customers appear here."/></div> :
-        <div className="mt-4 space-y-3">{refunds.map(refund => <div className="border-b border-border pb-4" key={refund.id}>
+      {refundRead && <Card><div id="refund-requests" /><SectionHeader title="Refund requests" description="Approve only customer-owned refund requests. Provider execution remains an explicit, evidence-led action."/>
+        <label className="mt-3 block text-sm font-semibold">Show refunds <Select className="ml-2 w-auto" aria-label="Filter refund requests" value={refundFilter} onChange={event => setRefundFilter(event.target.value as "ALL" | "PENDING")}><option value="ALL">All requests</option><option value="PENDING">Awaiting review</option></Select></label>
+        {!refunds.filter(row => refundFilter === "ALL" || ["REQUESTED", "UNDER_REVIEW"].includes(row.status)).length ? <div className="mt-4"><EmptyState title="No refund requests" detail="Requests from customers appear here."/></div> :
+        <div className="mt-4 space-y-3">{refunds.filter(row => refundFilter === "ALL" || ["REQUESTED", "UNDER_REVIEW"].includes(row.status)).map(refund => <div className="border-b border-border pb-4" key={refund.id}>
           <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">Request {refund.id.slice(0, 8)}</span><StatusBadge>{refund.status}</StatusBadge></div>
           <p className="mt-1 text-sm text-foreground-muted">Requested amount: {refund.requestedAmount ?? "—"} · Provider: {refund.refund?.status ?? "Not initiated"}</p>
           <div className="mt-3 flex flex-wrap gap-2">
