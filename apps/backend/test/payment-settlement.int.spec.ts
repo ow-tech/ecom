@@ -309,7 +309,7 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
   it("preserves captured-payment truth after cancellation without consuming released stock", async () => {
     const fixture = await createOrder("cancel-late", "6.00", 1);
     const initializedPayment = await initialize(fixture);
-    const originalCart = await prisma.checkoutAttempt.findUniqueOrThrow({ where: { order: { id: fixture.orderId } }, select: { cartId: true } });
+    const originalCart = await prisma.checkoutAttempt.findFirstOrThrow({ where: { order: { id: fixture.orderId } }, select: { cartId: true } });
     // The client may already have created a fresh empty cart after checkout prepared the order.
     expect((await http("GET", "/customer/cart", undefined, fixture.customer.cookie)).status).toBe(200);
     // A pending authorization must never be discarded just because the customer wants to leave.
