@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { api, type OrganizationInvitation } from "../../../lib/api";
 import { useSession } from "../../../components/session-provider";
 import { loginHref } from "../../../lib/auth-routing";
-import { StorefrontHeader } from "../../../components/storefront-header";
 import { Alert, Button, Card, EmptyState, ErrorState, PageHeader, Skeleton, StorefrontContainer } from "../../../components/ui";
 
 export default function OrganizationInvitationsPage() {
@@ -34,7 +33,7 @@ export default function OrganizationInvitationsPage() {
     finally { setWorking(undefined); }
   }
   if (!sessionLoading && !session) return null;
-  return <><StorefrontHeader /><StorefrontContainer className="max-w-3xl">
+  return <><StorefrontContainer className="max-w-3xl">
     <PageHeader eyebrow="Your account" title="Organization invitations" description="Only you can accept invitations sent to your registered Ecom account." actions={<Link className="font-semibold text-secondary hover:underline" href="/account">Back to account</Link>}/>
     {error && <div className="mt-5"><ErrorState detail={error} retry={() => void load()}/></div>}
     {notice && <div className="mt-5"><Alert tone="success">{notice}</Alert></div>}
