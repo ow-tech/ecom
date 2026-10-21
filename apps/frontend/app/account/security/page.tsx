@@ -6,7 +6,6 @@ import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../../../lib/api";
 import { useSession } from "../../../components/session-provider";
 import { loginHref } from "../../../lib/auth-routing";
-import { StorefrontHeader } from "../../../components/storefront-header";
 import { Alert, Button, FormField, PageHeader, Skeleton, StorefrontContainer, Surface } from "../../../components/ui";
 import { PasswordInput } from "../../../components/password-input";
 
@@ -33,7 +32,7 @@ export default function SecurityPage() {
     finally { setWorking(false); }
   }
   if (!loading && !session) return null;
-  return <><StorefrontHeader /><StorefrontContainer className="max-w-3xl">
+  return <><StorefrontContainer className="max-w-3xl">
     <PageHeader eyebrow="Your account" title="Account security" description="Change your password. All existing sessions will be signed out." actions={<Link href="/account" className="font-semibold text-secondary hover:underline">Back to account</Link>} />
     {loading || !session ? <Skeleton className="mt-7 h-64" /> : <Surface className="mt-7"><form onSubmit={submit} className="max-w-md space-y-5">
       {error && <Alert tone="error">{error}</Alert>}
