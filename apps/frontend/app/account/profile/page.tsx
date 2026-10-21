@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { api, type CustomerProfile } from "../../../lib/api";
 import { useSession } from "../../../components/session-provider";
 import { loginHref } from "../../../lib/auth-routing";
-import { StorefrontHeader } from "../../../components/storefront-header";
 import { Alert, Button, ErrorState, FormField, Input, PageHeader, Skeleton, StorefrontContainer, Surface } from "../../../components/ui";
 
 export default function ProfilePage() {
@@ -45,7 +44,7 @@ export default function ProfilePage() {
   }
 
   if (!sessionLoading && !session) return null;
-  return <><StorefrontHeader /><StorefrontContainer className="max-w-3xl">
+  return <><StorefrontContainer className="max-w-3xl">
     <PageHeader eyebrow="Your account" title="Personal details" description="Keep your contact details up to date. Existing orders preserve their original delivery information." actions={<Link className="font-semibold text-secondary hover:underline" href="/account">Back to account</Link>} />
     {error && <div className="mt-6"><ErrorState detail={error} retry={() => void load()} /></div>}
     {notice && <div className="mt-6"><Alert tone="success">{notice}</Alert></div>}
