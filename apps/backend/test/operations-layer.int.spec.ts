@@ -30,6 +30,7 @@ describe("Operations layer integration", () => {
   it("serves platform summary over real PostgreSQL and excludes closed support from all active queues", async () => {
     const admin = await platformAgent("summary-admin");
     const requester = await account("summary-customer");
+    const requesterProfile = await prisma.customerProfile.create({ data: { userId: requester.id } });
     expect((await http("GET", "/platform/operations/summary")).status).toBe(401);
     expect((await http("GET", "/platform/operations/summary", undefined, requester.cookie)).status).toBe(403);
 
@@ -53,13 +54,13 @@ describe("Operations layer integration", () => {
     const future = new Date(Date.now() + 3600_000);
     await prisma.supportTicket.createMany({ data: [
       { ticketNumber: `${prefix.slice(0, 24)}-SUMMARY-A`, origin: "CUSTOMER",
-        requesterUserId: requester.id, category: "OTHER", status: "OPEN", priority: "NORMAL",
+        requesterUserId: requester.id, customerProfileId: requesterProfile.id, category: "OTHER", status: "OPEN", priority: "NORMAL",
         subject: "Unassigned open support", resolutionDueAt: future },
       { ticketNumber: `${prefix.slice(0, 24)}-SUMMARY-B`, origin: "CUSTOMER",
-        requesterUserId: requester.id, category: "OTHER", status: "IN_PROGRESS", priority: "URGENT",
+        requesterUserId: requester.id, customerProfileId: requesterProfile.id, category: "OTHER", status: "IN_PROGRESS", priority: "URGENT",
         assignedToUserId: admin.id, subject: "Overdue assigned urgent support", resolutionDueAt: past },
       { ticketNumber: `${prefix.slice(0, 24)}-SUMMARY-C`, origin: "CUSTOMER",
-        requesterUserId: requester.id, category: "OTHER", status: "CLOSED", priority: "URGENT",
+        requesterUserId: requester.id, customerProfileId: requesterProfile.id, category: "OTHER", status: "CLOSED", priority: "URGENT",
         subject: "Closed support must never count as active", resolutionDueAt: past },
     ] });
 
