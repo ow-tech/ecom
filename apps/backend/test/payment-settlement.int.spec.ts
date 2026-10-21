@@ -311,7 +311,7 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
     const initializedPayment = await initialize(fixture);
     // A pending authorization must never be discarded just because the customer wants to leave.
     expect((await http("POST", `/customer/orders/${fixture.orderId}/cancel`, { reason: "Cannot abandon unresolved authorization" }, fixture.customer.cookie)).status).toBe(409);
-    expect((await prisma.inventoryReservation.count({ where: { orderId: fixture.orderId, status: "ACTIVE" } })).toBeGreaterThan(0);
+    expect(await prisma.inventoryReservation.count({ where: { orderId: fixture.orderId, status: "ACTIVE" } })).toBeGreaterThan(0);
     verification.set(initializedPayment.body.reference, { reference: initializedPayment.body.reference, providerStatus: "failed", amountMinor: fixture.totalMinor, currency: "USD", customerEmail: fixture.customerEmail, channel: "card" });
     const verified = await http("POST", `/customer/orders/${fixture.orderId}/payments/${initializedPayment.body.paymentId}/verify`, undefined, fixture.customer.cookie);
     expect(verified.body.status).toBe("FAILED");
