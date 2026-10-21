@@ -36,6 +36,7 @@ export function DeliveryManagement({ permissions }: { permissions: string[] }) {
     finally { setLoading(false); }
   }, [pickupRead]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (!loading && window.location.hash === "#delivery-quotes") document.getElementById("delivery-quotes")?.scrollIntoView({ block: "start" }); }, [loading]);
   async function run(action: () => Promise<unknown>, success?: () => void) {
     if (busy) return;
     setBusy(true); setError(undefined); setNotice(undefined);
