@@ -27,6 +27,52 @@ describe("Operations layer integration", () => {
   beforeAll(async () => { const module = await Test.createTestingModule({ imports: [AppModule] }).compile(); app = module.createNestApplication(); app.use(cookieParser()); app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })); await app.listen(0, "127.0.0.1"); baseUrl = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`; prisma = app.get(PrismaService); outbox = app.get(OperationalOutboxService); processor = app.get(OperationalOutboxProcessor); notifications = app.get(NotificationService); delivery = app.get(NotificationDeliveryService); audit = app.get(AuditService); });
   afterAll(async () => { if (prisma) { const users = await prisma.user.findMany({ where: { emailNormalized: { startsWith: prefix } }, select: { id: true } }); const ids = users.map(row => row.id); const tickets = await prisma.supportTicket.findMany({ where: { requesterUserId: { in: ids } }, select: { id: true } }); const ticketIds = tickets.map(row => row.id); const rows = await prisma.notification.findMany({ where: { recipientUserId: { in: ids } }, select: { id: true } }); await prisma.notificationDeliveryAttempt.deleteMany({ where: { notificationId: { in: rows.map(row => row.id) } } }); await prisma.notification.deleteMany({ where: { recipientUserId: { in: ids } } }); await prisma.notificationPreference.deleteMany({ where: { userId: { in: ids } } }); await prisma.auditEvent.deleteMany({ where: { actorUserId: { in: ids } } }); await prisma.supportMessage.deleteMany({ where: { ticketId: { in: ticketIds } } }); await prisma.supportTicketStatusHistory.deleteMany({ where: { ticketId: { in: ticketIds } } }); await prisma.supportAssignmentHistory.deleteMany({ where: { ticketId: { in: ticketIds } } }); await prisma.supportTicket.deleteMany({ where: { id: { in: ticketIds } } }); await prisma.operationalOutboxEvent.deleteMany({ where: { OR: [{ dedupeKey: { startsWith: prefix } }, { aggregateType: "SupportTicket", aggregateId: { in: ticketIds } }] } }); await prisma.organization.deleteMany({ where: { slug: { startsWith: prefix } } }); await prisma.session.deleteMany({ where: { userId: { in: ids } } }); await prisma.user.deleteMany({ where: { id: { in: ids } } }); } if (app) await app.close(); });
 
+  it("serves platform summary over real PostgreSQL and excludes closed support from all active queues", async () => {
+    const admin = await platformAgent("summary-admin");
+    const requester = await account("summary-customer");
+    expect((await http("GET", "/platform/operations/summary")).status).toBe(401);
+    expect((await http("GET", "/platform/operations/summary", undefined, requester.cookie)).status).toBe(403);
+
+    const initial = await http("GET", "/platform/operations/summary", undefined, admin.cookie);
+    expect(initial.status).toBe(200);
+    const read = (response: Response) => response.body as unknown as {
+      suppliers: { pendingReview: number };
+      support: { open: number; unassigned: number; overdue: number; urgent: number };
+      payments: { unknown: number; paymentReview: number };
+      orders: { awaitingDeliveryQuote: number };
+    };
+    const before = read(initial);
+    expect(before.support).toEqual({
+      open: expect.any(Number), unassigned: expect.any(Number),
+      overdue: expect.any(Number), urgent: expect.any(Number),
+    });
+    expect(before.suppliers.pendingReview).toEqual(expect.any(Number));
+    expect(before.payments.unknown).toEqual(expect.any(Number));
+
+    const past = new Date(Date.now() - 3600_000);
+    const future = new Date(Date.now() + 3600_000);
+    await prisma.supportTicket.createMany({ data: [
+      { ticketNumber: `${prefix.slice(0, 24)}-SUMMARY-A`, origin: "CUSTOMER",
+        requesterUserId: requester.id, category: "OTHER", status: "OPEN", priority: "NORMAL",
+        subject: "Unassigned open support", resolutionDueAt: future },
+      { ticketNumber: `${prefix.slice(0, 24)}-SUMMARY-B`, origin: "CUSTOMER",
+        requesterUserId: requester.id, category: "OTHER", status: "IN_PROGRESS", priority: "URGENT",
+        assignedToUserId: admin.id, subject: "Overdue assigned urgent support", resolutionDueAt: past },
+      { ticketNumber: `${prefix.slice(0, 24)}-SUMMARY-C`, origin: "CUSTOMER",
+        requesterUserId: requester.id, category: "OTHER", status: "CLOSED", priority: "URGENT",
+        subject: "Closed support must never count as active", resolutionDueAt: past },
+    ] });
+
+    const result = await http("GET", "/platform/operations/summary", undefined, admin.cookie);
+    expect(result.status).toBe(200);
+    const after = read(result);
+    expect(after.support.open - before.support.open).toBe(1);
+    expect(after.support.unassigned - before.support.unassigned).toBe(1);
+    expect(after.support.overdue - before.support.overdue).toBe(1);
+    expect(after.support.urgent - before.support.urgent).toBe(1);
+    expect(after.suppliers.pendingReview).toBe(before.suppliers.pendingReview);
+  });
+
   it("persists a canonical intent once under a real concurrent dedupe race", async () => { const user = await account("dedupe"); const results = await Promise.allSettled([enqueue("same", user.id), enqueue("same", user.id)]); expect(results.every(result => result.status === "fulfilled")).toBe(true); const rows = await prisma.operationalOutboxEvent.findMany({ where: { dedupeKey: `${prefix}:same` } }); expect(rows).toHaveLength(1); expect(rows[0]).toEqual(expect.objectContaining({ status: "PENDING", attemptCount: 0, payload: expect.anything(), availableAt: expect.any(Date) })); await prisma.operationalOutboxEvent.update({ where: { id: rows[0].id }, data: { status: "PROCESSED", processedAt: new Date() } }); });
 
   it("claims one event only once across concurrent processors and records retry evidence", async () => { const user = await account("processor"); const event = await enqueue("claim", user.id); await prisma.operationalOutboxEvent.update({ where: { id: event.id }, data: { availableAt: new Date(0) } }); const handle = jest.spyOn(delivery, "handleOutboxEvent"); await Promise.all([processor.processBatch(`${prefix}-worker-a`, 1), processor.processBatch(`${prefix}-worker-b`, 1)]); const ownCalls = handle.mock.calls.filter(([eventType, payload]) => eventType === "TEST_NOTICE" && (payload as { dedupeKey?: string }).dedupeKey === `${prefix}:notification:claim`); handle.mockRestore(); expect(ownCalls).toHaveLength(1); const processed = await prisma.operationalOutboxEvent.findUniqueOrThrow({ where: { id: event.id } }); expect(processed).toEqual(expect.objectContaining({ status: "PROCESSED", attemptCount: 1, processedAt: expect.any(Date) })); expect(await prisma.notification.count({ where: { dedupeKey: `${prefix}:notification:claim` } })).toBe(1);
