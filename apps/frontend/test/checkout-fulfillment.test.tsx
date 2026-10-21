@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import React from "react";
 
 const mocks = vi.hoisted(() => ({
-  api: { customerAddresses: vi.fn(), createCustomerAddress: vi.fn(), updateCustomerAddress: vi.fn(), pickupPoints: vi.fn(), previewCheckout: vi.fn(), prepareCheckout: vi.fn(), initializePayment: vi.fn(), paymentStatus: vi.fn(), verifyPayment: vi.fn() },
+  api: { cancelCustomerOrder: vi.fn(), customerAddresses: vi.fn(), createCustomerAddress: vi.fn(), updateCustomerAddress: vi.fn(), pickupPoints: vi.fn(), previewCheckout: vi.fn(), prepareCheckout: vi.fn(), initializePayment: vi.fn(), paymentStatus: vi.fn(), verifyPayment: vi.fn() },
   cart: undefined as undefined | Record<string, unknown>, refresh: vi.fn(), replace: vi.fn(), redirectToPaystack: vi.fn(),
 }));
 
@@ -25,6 +25,7 @@ const preview = { currencyCode: "KES", subtotal: "10.00", deliveryFee: "0.00", p
 beforeEach(() => {
   vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "checkout-idempotency-key") });
   mocks.cart = { id: "cart", currency: "KES", subtotal: "10.00", items: [{ id: "line", supplierListingId: "listing", quantity: 1, unitPrice: "10.00", currency: "KES", productName: "QA item" }] };
+  mocks.api.cancelCustomerOrder.mockResolvedValue({ status: "CANCELLED" });
   mocks.api.customerAddresses.mockResolvedValue([address]); mocks.api.pickupPoints.mockResolvedValue([point]); mocks.api.previewCheckout.mockResolvedValue(preview); mocks.api.prepareCheckout.mockResolvedValue(prepared); mocks.api.initializePayment.mockResolvedValue({ paymentId: "payment", status: "PENDING", authorizationUrl: null, accessCode: null }); mocks.api.paymentStatus.mockResolvedValue({ order: { id: "order", orderNumber: "EC-QA", status: "PENDING_PAYMENT", paymentStatus: "UNPAID" }, payment: { id: "payment", orderId: "order", provider: "PAYSTACK", reference: "ref", status: "PENDING", initializedAt: null, succeededAt: null, lastVerifiedAt: null, createdAt: "2026-10-11T00:00:00.000Z" } }); mocks.api.verifyPayment.mockResolvedValue({ status: "PENDING" }); mocks.refresh.mockResolvedValue(undefined);
   mocks.api.updateCustomerAddress.mockImplementation(async (_id: string, input: Record<string, unknown>) => ({ ...address, ...input }));
 });
@@ -192,6 +193,23 @@ describe("CheckoutPage fulfilment contract", () => {
     expect(JSON.parse(window.sessionStorage.getItem("ecom.checkout.payment-intent")!)).toEqual({ orderId: "order", key: "checkout-idempotency-key", method: "CARD" });
   });
 
+  it("cancels a confirmed failed checkout, clears its intent and returns to the saved cart", async () => {
+    mocks.api.paymentStatus.mockResolvedValue({ order: { id: "order", orderNumber: "EC-QA", status: "PENDING_PAYMENT", paymentStatus: "UNPAID" }, payment: { id: "payment", status: "FAILED", canRetry: true, failureKind: "CONFIGURATION_REJECTED" } });
+    window.sessionStorage.setItem("ecom.checkout.payment-intent", JSON.stringify({ orderId: "order", key: "payment-key", method: "CARD" }));
+    render(<CheckoutPage />);
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel unpaid checkout and return to cart" }));
+    await waitFor(() => expect(mocks.api.cancelCustomerOrder).toHaveBeenCalledWith("order"));
+    expect(window.sessionStorage.getItem("ecom.checkout.payment-intent")).toBeNull();
+    expect(mocks.replace).toHaveBeenCalledWith("/cart");
+  });
+  it("does not let customers cancel a pending or unknown provider payment", async () => {
+    mocks.api.paymentStatus.mockResolvedValue({ order: { id: "order", orderNumber: "EC-QA", status: "PENDING_PAYMENT", paymentStatus: "UNPAID" }, payment: { id: "payment", status: "UNKNOWN", canResume: false, failureKind: "NETWORK_UNCERTAIN" } });
+    window.sessionStorage.setItem("ecom.checkout.payment-intent", JSON.stringify({ orderId: "order", key: "payment-key", method: "CARD" }));
+    render(<CheckoutPage />);
+    expect(await screen.findByRole("button", { name: /Check payment status/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Cancel unpaid checkout/ })).toBeNull();
+    expect(mocks.api.cancelCustomerOrder).not.toHaveBeenCalled();
+  });
   it.each([
     ["FAILED", "CONFIGURATION_REJECTED", /Paystack rejected the store configuration/i],
     ["UNKNOWN", "NETWORK_UNCERTAIN", /connection to Paystack was interrupted/i],
