@@ -96,7 +96,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, { credentials: "include", ...init, headers: { "content-type": "application/json", ...init?.headers } });
+  const response = await fetch(`/api${path}`, { credentials: "include", cache: "no-store", ...init, headers: { "content-type": "application/json", ...init?.headers } });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     const message = typeof body.message === "string" ? body.message : Array.isArray(body.message) && body.message.every((item: unknown): item is string => typeof item === "string") ? body.message.join(" ") : "Something went wrong. Please try again.";
