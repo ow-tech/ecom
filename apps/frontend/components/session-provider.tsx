@@ -1,13 +1,13 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, ApiError, type Session } from "../lib/api";
+import { api, type Session } from "../lib/api";
 
-type State = { session: Session | null; loading: boolean; refresh: () => Promise<void>; signOut: () => Promise<void> };
+type State = { session: Session | null; loading: boolean; refresh: () => Promise<Session | null>; signOut: () => Promise<void> };
 const SessionContext = createContext<State | null>(null);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null); const [loading, setLoading] = useState(true);
-  const refresh = useCallback(async () => { try { setSession(await api.me()); } catch (error) { if (!(error instanceof ApiError) || error.status !== 401) setSession(null); else setSession(null); } finally { setLoading(false); } }, []);
+  const refresh = useCallback(async (): Promise<Session | null> => { try { const next = await api.me(); setSession(next); return next; } catch { setSession(null); return null; } finally { setLoading(false); } }, []);
   useEffect(() => { void refresh(); }, [refresh]);
   const signOut = async () => { await api.logout(); setSession(null); };
   return <SessionContext.Provider value={{ session, loading, refresh, signOut }}>{children}</SessionContext.Provider>;
