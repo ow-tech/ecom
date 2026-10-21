@@ -40,6 +40,6 @@ describe("saved account information overview", () => {
   it("displays a fetch failure instead of claiming empty saved data", async () => {
     mocks.profile.mockRejectedValueOnce(new Error("Account temporarily unavailable"));
     render(<AccountPage />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Account temporarily unavailable");
+    expect((await screen.findByRole("alert")).textContent).toContain("Account temporarily unavailable");
   });
 });
