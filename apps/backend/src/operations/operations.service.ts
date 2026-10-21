@@ -41,7 +41,7 @@ export class OperationalOutboxService {
   }
 
   async summary() {
-    const activeSupport = { not: "CLOSED" as const };
+    const activeSupport = { status: { not: "CLOSED" as const } };
     const overdue = { ...activeSupport, resolutionDueAt: { lt: new Date() } };
     const [suppliersPendingReview, supportOpen, supportUnassigned, supportOverdue, supportUrgent, paymentReview, paymentUnknown, awaitingDeliveryQuote, readyForPickup, outForDelivery, refundsPendingReview, refundsProviderUnknown, returnsPendingReview, warrantiesPendingReview, settlementsDraft, settlementsApproved, outboxPending, outboxFailed] = await this.prisma.$transaction([
       this.prisma.supplier.count({ where: { status: "PENDING_REVIEW" } }),

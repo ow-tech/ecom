@@ -3,6 +3,8 @@ name: ECOM verification
 on:
   push:
     branches: [dev, 'integration/ecom-unified-qa', 'feature/account-overview-paystack-recovery', 'feature/auth-actions-dashboard-drilldowns']
+  pull_request:
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
