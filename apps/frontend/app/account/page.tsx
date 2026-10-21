@@ -6,6 +6,7 @@ import { useSession } from "../../components/session-provider";
 import { loginHref } from "../../lib/auth-routing";
 import { api, type CustomerProfile, type CustomerAddress } from "../../lib/api";
 import { Card, EmptyState, PageHeader, Skeleton } from "../../components/ui";
+import { SignOutButton } from "../../components/sign-out-button";
 
 type SavedDetails = { profile: CustomerProfile; addresses: CustomerAddress[] };
 const shown = (value?: string | null) => value?.trim() || "Not added";
@@ -34,7 +35,7 @@ export default function AccountPage() {
   const defaultAddress = details?.addresses.find(address => address.isDefault) ?? details?.addresses[0];
   const personName = details ? [details.profile.firstName, details.profile.lastName].filter(Boolean).join(" ") : "";
   return <main className="mx-auto max-w-5xl p-5 sm:p-8">
-    <PageHeader eyebrow="Your account" title={`Welcome, ${personName || session.displayName || "there"}`} description="Your saved information and authorized workspaces." />
+    <PageHeader eyebrow="Your account" title={`Welcome, ${personName || session.displayName || "there"}`} description="Your saved information and authorized workspaces." actions={<SignOutButton />} />
     <div className="mt-8 grid gap-5 md:grid-cols-2">
       {isCustomer && <Card>
         <h2 className="text-lg font-bold">Your saved details</h2>
