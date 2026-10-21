@@ -37,6 +37,7 @@ function LoadedPaymentProgress({ initial, intent, working, onResume, onRetry, on
   working: boolean;
   onResume: () => Promise<void>;
   onRetry: () => Promise<void>;
+  onAbandon: (cancelOrder: boolean) => Promise<void>;
   onTerminal: () => void;
 }) {
   const { snapshot, state, checking, timedOut, temporaryError, checkAgain } = usePaymentConfirmation(intent.orderId, initial, true);
