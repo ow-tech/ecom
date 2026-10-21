@@ -1,5 +1,11 @@
 # Feature Index
 
+## Permission-aware workforce login workspace routing
+
+Status: IMPLEMENTED_VERIFICATION_PENDING — session-based platform/supplier routing, no-access fallback and defensive return URLs.
+
+Documentation: [workforce-login-workspace-routing.md](features/workforce-login-workspace-routing.md)
+
 ## Persistent storefront navigation and responsive product cards
 
 Status: IMPLEMENTED_REMOTE — automated and real-browser verification gates remain.
