@@ -7,7 +7,8 @@ import { api } from "../../../lib/api";
 import { useSession } from "../../../components/session-provider";
 import { loginHref } from "../../../lib/auth-routing";
 import { StorefrontHeader } from "../../../components/storefront-header";
-import { Alert, Button, FormField, Input, PageHeader, Skeleton, StorefrontContainer, Surface } from "../../../components/ui";
+import { Alert, Button, FormField, PageHeader, Skeleton, StorefrontContainer, Surface } from "../../../components/ui";
+import { PasswordInput } from "../../../components/password-input";
 
 export default function SecurityPage() {
   const { session, loading, refresh } = useSession();
@@ -36,9 +37,9 @@ export default function SecurityPage() {
     <PageHeader eyebrow="Your account" title="Account security" description="Change your password. All existing sessions will be signed out." actions={<Link href="/account" className="font-semibold text-secondary hover:underline">Back to account</Link>} />
     {loading || !session ? <Skeleton className="mt-7 h-64" /> : <Surface className="mt-7"><form onSubmit={submit} className="max-w-md space-y-5">
       {error && <Alert tone="error">{error}</Alert>}
-      <FormField label="Current password"><Input type="password" autoComplete="current-password" required value={current} onChange={e => setCurrent(e.target.value)}/></FormField>
-      <FormField label="New password"><Input type="password" autoComplete="new-password" minLength={12} maxLength={256} required value={next} onChange={e => setNext(e.target.value)}/></FormField>
-      <FormField label="Confirm new password"><Input type="password" autoComplete="new-password" minLength={12} maxLength={256} required value={confirm} onChange={e => setConfirm(e.target.value)}/></FormField>
+      <FormField label="Current password"><PasswordInput autoComplete="current-password" required value={current} onChange={e => setCurrent(e.target.value)}/></FormField>
+      <FormField label="New password"><PasswordInput autoComplete="new-password" minLength={12} maxLength={256} required value={next} onChange={e => setNext(e.target.value)}/></FormField>
+      <FormField label="Confirm new password"><PasswordInput autoComplete="new-password" minLength={12} maxLength={256} required value={confirm} onChange={e => setConfirm(e.target.value)}/></FormField>
       <Button type="submit" loading={working}>Change password and sign out</Button>
       <p className="text-sm text-foreground-muted">Use at least 12 characters. Sign in again with your new password.</p>
     </form></Surface>}
