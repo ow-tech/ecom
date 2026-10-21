@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { OrderPaymentStatus, OrderStatus, Prisma, SupplierOrderStatus } from "@prisma/client";
+import { CartStatus, OrderPaymentStatus, OrderStatus, PaymentStatus, Prisma, SupplierOrderStatus } from "@prisma/client";
 import { commerceConflict } from "../commerce/commerce-error";
 import { CustomerService } from "../customer/customer.service";
 import { InventoryService } from "../inventory/inventory.service";
@@ -38,6 +38,41 @@ export class OrdersService {
     return this.output(order);
   }
 
+  // Checkout converts the basket before Paystack initializes. Safe cancellation
+  // must preserve those items, including when the cart API created a new empty cart.
+  private async restoreCartAfterCancellation(tx: Prisma.TransactionClient, checkoutAttemptId: string, customerProfileId: string) {
+    const attempt = await tx.checkoutAttempt.findUnique({ where: { id: checkoutAttemptId }, select: { cartId: true } });
+    if (!attempt) return;
+    const original = await tx.cart.findFirst({ where: { id: attempt.cartId, customerProfileId, status: CartStatus.CONVERTED } });
+    if (!original) return;
+    const current = await tx.cart.findFirst({ where: { customerProfileId, status: CartStatus.ACTIVE } });
+    if (!current) {
+      await tx.cart.update({ where: { id: original.id }, data: { status: CartStatus.ACTIVE } });
+      return;
+    }
+    const currentItems = await tx.cartItem.findMany({ where: { cartId: current.id } });
+    if (!currentItems.length) {
+      await tx.cart.update({ where: { id: current.id }, data: { status: CartStatus.ABANDONED } });
+      await tx.cart.update({ where: { id: original.id }, data: { status: CartStatus.ACTIVE } });
+      return;
+    }
+    if (current.currencyCode !== original.currencyCode)
+      throw commerceConflict("CART_CURRENCY_MISMATCH", "Your current cart uses a different currency. Clear it before restoring the cancelled checkout.");
+    const previous = await tx.cartItem.findMany({ where: { cartId: original.id } });
+    for (const item of previous) {
+      const matched = currentItems.find(existing => existing.supplierListingId === item.supplierListingId);
+      if (matched) {
+        await tx.cartItem.update({ where: { id: matched.id }, data: { quantity: matched.quantity + item.quantity } });
+      } else {
+        await tx.cartItem.create({ data: {
+          cartId: current.id, supplierListingId: item.supplierListingId, quantity: item.quantity,
+          unitPriceSnapshot: item.unitPriceSnapshot, currencyCode: item.currencyCode,
+        } });
+      }
+    }
+    // Keep the converted cart as an immutable checkout reference; active basket owns the recovered copies.
+  }
+
   async cancel(userId: string, orderId: string, dto: CancelOrderDto) {
     const profile = await this.customer.ensureCustomerProfile(userId);
     await this.prisma.$transaction(async (tx) => {
@@ -45,6 +80,10 @@ export class OrdersService {
       if (!order) throw new NotFoundException("Order not found");
       if (order.status === OrderStatus.CANCELLED) return;
       if ((order.status !== OrderStatus.PENDING_PAYMENT && order.status !== OrderStatus.AWAITING_DELIVERY_QUOTE) || order.paymentStatus !== OrderPaymentStatus.UNPAID) throw commerceConflict("CHECKOUT_ALREADY_TERMINAL", "Only unpaid pending orders can be cancelled");
+      // An unresolved Paystack attempt might still settle asynchronously. Never cancel
+      // or release reserved inventory before the provider outcome is authoritative.
+      const unsettled = await tx.payment.count({ where: { orderId: order.id, status: { in: [PaymentStatus.INITIALIZATION_PENDING, PaymentStatus.PENDING, PaymentStatus.UNKNOWN, PaymentStatus.SUCCEEDED] } } });
+      if (unsettled > 0) throw commerceConflict("PAYMENT_NOT_RESOLVED", "Payment is still being confirmed. Check its status before cancelling the order.");
       const now = new Date();
       const changed = await tx.order.updateMany({ where: { id: order.id, status: order.status, paymentStatus: OrderPaymentStatus.UNPAID }, data: { status: OrderStatus.CANCELLED, cancelledAt: now } });
       if (changed.count !== 1) return;
@@ -52,6 +91,7 @@ export class OrdersService {
       const supplierOrders = await tx.supplierOrder.findMany({ where: { orderId: order.id }, select: { id: true } });
       await tx.supplierOrderStatusHistory.createMany({ data: supplierOrders.map((row) => ({ supplierOrderId: row.id, previousStatus: SupplierOrderStatus.PENDING_PAYMENT, newStatus: SupplierOrderStatus.CANCELLED, actorUserId: userId, reason: dto.reason, publicMessage: "Supplier order cancelled" })) });
       await this.inventory.releaseOwned(tx, order.id, now);
+      await this.restoreCartAfterCancellation(tx, order.checkoutAttemptId, profile.id);
       await tx.orderStatusHistory.create({ data: { orderId: order.id, previousStatus: order.status, newStatus: OrderStatus.CANCELLED, actorUserId: userId, reason: dto.reason, publicMessage: "Order cancelled" } });
       await this.outbox.enqueue(tx, { eventType: "ORDER_CANCELLED", aggregateType: "Order", aggregateId: order.id, dedupeKey: `order:${order.id}:cancelled`, userId, payload: { recipientUserId: userId, type: "ORDER_CANCELLED", category: "ORDER", title: "Order cancelled", body: "Your unpaid order was cancelled.", entityType: "ORDER", entityId: order.id, dedupeKey: `notification:order:${order.id}:cancelled` } });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

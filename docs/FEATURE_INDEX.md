@@ -1,5 +1,11 @@
 # Feature Index
 
+## Authentication controls and actionable KPI drilldowns
+
+Status: IMPLEMENTED_VERIFICATION_PARTIAL — client/backend integration is committed; automated regression and authenticated browser QA are outstanding.
+
+Feature documentation: [auth-controls-and-kpi-drilldowns.md](features/auth-controls-and-kpi-drilldowns.md)
+
 ## Master Implementation Roadmap (Phases 1–9 + Production)
 
 Status: PLANNED and indexed. Identity phases 1–3 are the first security dependency, followed by notifications (13), overseas sourcing (15), CRM (16), accounting (17), reports (18), CMS/SEO (19); deployment/backup/CI release infrastructure (20) proceeds in parallel. Roadmap phases are not implemented solely by being listed here.

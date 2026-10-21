@@ -9,11 +9,12 @@ import type { CheckoutPaymentMethod } from "./checkout-payment-options";
 
 export type CheckoutPaymentIntent = { orderId: string; key: string; method: CheckoutPaymentMethod };
 
-export function CheckoutPaymentProgress({ intent, working, onResume, onRetry, onTerminal }: {
+export function CheckoutPaymentProgress({ intent, working, onResume, onRetry, onAbandon, onTerminal }: {
   intent: CheckoutPaymentIntent;
   working: boolean;
   onResume: () => Promise<void>;
   onRetry: () => Promise<void>;
+  onAbandon: (cancelOrder: boolean) => Promise<void>;
   onTerminal: () => void;
 }) {
   const [initial, setInitial] = useState<PaymentStatusResponse>();
@@ -27,15 +28,16 @@ export function CheckoutPaymentProgress({ intent, working, onResume, onRetry, on
   }, [intent.orderId, reload]);
   if (error) return <><PageHeader eyebrow="Checkout" title="Payment status unavailable" /><div className="mt-5"><Alert tone="error">{error}</Alert></div><div className="mt-5 flex flex-wrap gap-3"><Button onClick={() => setReload(value => value + 1)}>Check again</Button><Link className="inline-flex min-h-10 items-center justify-center px-2 text-sm font-semibold text-secondary hover:underline" href={`/checkout/payment/${encodeURIComponent(intent.orderId)}`}>Order details</Link></div></>;
   if (!initial) return <><PageHeader eyebrow="Checkout" title="Checking your payment" /><Skeleton className="mt-6 h-28 w-full" /></>;
-  return <LoadedPaymentProgress initial={initial} intent={intent} working={working} onResume={onResume} onRetry={onRetry} onTerminal={onTerminal} />;
+  return <LoadedPaymentProgress initial={initial} intent={intent} working={working} onResume={onResume} onRetry={onRetry} onAbandon={onAbandon} onTerminal={onTerminal} />;
 }
 
-function LoadedPaymentProgress({ initial, intent, working, onResume, onRetry, onTerminal }: {
+function LoadedPaymentProgress({ initial, intent, working, onResume, onRetry, onAbandon, onTerminal }: {
   initial: PaymentStatusResponse;
   intent: CheckoutPaymentIntent;
   working: boolean;
   onResume: () => Promise<void>;
   onRetry: () => Promise<void>;
+  onAbandon: (cancelOrder: boolean) => Promise<void>;
   onTerminal: () => void;
 }) {
   const { snapshot, state, checking, timedOut, temporaryError, checkAgain } = usePaymentConfirmation(intent.orderId, initial, true);
@@ -74,6 +76,8 @@ function LoadedPaymentProgress({ initial, intent, working, onResume, onRetry, on
       {(state === "PENDING_CONFIRMATION" || state === "UNKNOWN") && <Button variant="outline" loading={checking} onClick={() => void checkAgain()}>Check payment status</Button>}
       {state === "FAILED" && canRetry && <Button loading={working} onClick={() => void onRetry()}>Try {method} again</Button>}
       {state === "PAYABLE" && <Button loading={working} onClick={() => void onRetry()}>Pay with {method}</Button>}
+      {(state === "FAILED" || state === "PAYABLE") && <Button variant="outline" disabled={working || checking} onClick={() => void onAbandon(true)}>Cancel unpaid checkout and return to cart</Button>}
+      {(state === "EXPIRED" || state === "CANCELLED") && <Button variant="outline" disabled={working} onClick={() => void onAbandon(false)}>Return to cart</Button>}
       <Link className="inline-flex min-h-10 items-center justify-center px-2 text-sm font-semibold text-secondary hover:underline" href={`/checkout/payment/${encodeURIComponent(intent.orderId)}`}>Order details</Link>
     </div>
     {(checking || working) && <p className="mt-4 text-sm text-foreground-muted" role="status" aria-live="polite">{working ? "Opening secure Paystack checkout…" : "Checking authoritative payment status…"}</p>}

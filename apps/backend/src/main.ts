@@ -2,12 +2,20 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { Logger, ValidationPipe } from "@nestjs/common";
 import * as cookieParser from "cookie-parser";
-import type { NextFunction, Request, Response } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 
 import { AppModule } from "./app.module";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  // Authenticated responses contain user/tenant-scoped state. Do not allow ETag
+  // revalidation to turn these live API reads into browser-cached 304 responses.
+  const express = app.getHttpAdapter().getInstance() as Express;
+  express.disable("etag");
+  app.use((_request: Request, response: Response, next: NextFunction) => {
+    response.setHeader("Cache-Control", "private, no-store, max-age=0");
+    next();
+  });
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   const config = app.get(ConfigService);

@@ -96,7 +96,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, { credentials: "include", ...init, headers: { "content-type": "application/json", ...init?.headers } });
+  const response = await fetch(`/api${path}`, { credentials: "include", cache: "no-store", ...init, headers: { "content-type": "application/json", ...init?.headers } });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     const message = typeof body.message === "string" ? body.message : Array.isArray(body.message) && body.message.every((item: unknown): item is string => typeof item === "string") ? body.message.join(" ") : "Something went wrong. Please try again.";
@@ -176,7 +176,7 @@ export const api = {
   createSupplierListing: (organizationId: string, input: Record<string, unknown>) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/listings`, { method: "POST", body: JSON.stringify(input) }),
   updateSupplierListing: (organizationId: string, listingId: string, input: Record<string, unknown>) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/listings/${encodeURIComponent(listingId)}`, { method: "PATCH", body: JSON.stringify(input) }),
   listingLifecycle: (organizationId: string, listingId: string, action: "activate" | "deactivate") => request<any>(`/organizations/${encodeURIComponent(organizationId)}/listings/${encodeURIComponent(listingId)}/${action}`, { method: "POST" }),
-  inventory: (organizationId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/inventory?limit=100`),
+  inventory: (organizationId: string, query: { view?: "ALL" | "ATTENTION" | "RESERVED" | "INACTIVE"; page?: number; limit?: number } = {}) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/inventory?${new URLSearchParams({ limit: String(query.limit ?? 100), page: String(query.page ?? 1), ...(query.view && query.view !== "ALL" ? { view: query.view } : {}) })}`),
   inventoryLocations: (organizationId: string) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/inventory/locations`),
   createInventoryLocation: (organizationId: string, input: Record<string, unknown>) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/inventory/locations`, { method: "POST", body: JSON.stringify(input) }),
   stock: (organizationId: string, action: "receive" | "adjust", input: Record<string, unknown>) => request<any>(`/organizations/${encodeURIComponent(organizationId)}/inventory/${action}`, { method: "POST", body: JSON.stringify(input) }),
@@ -237,6 +237,7 @@ export const api = {
   previewCheckout: (input: { fulfillmentMethod: typeof checkoutFulfillmentMethod.DELIVERY; addressId: string } | { fulfillmentMethod: typeof checkoutFulfillmentMethod.PICKUP; pickupPointId: string }) => request<CheckoutPreview>("/customer/checkout/preview", { method: "POST", body: JSON.stringify(input) }),
   prepareCheckout: (input: { fulfillmentMethod: typeof checkoutFulfillmentMethod.DELIVERY; addressId: string } | { fulfillmentMethod: typeof checkoutFulfillmentMethod.PICKUP; pickupPointId: string }, idempotencyKey: string) => request<CheckoutSummary>("/customer/checkout/prepare", { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify(input) }),
   customerOrders: () => request<CustomerOrderListItem[]>("/customer/orders"),
+  cancelCustomerOrder: (orderId: string, reason = "Customer abandoned failed checkout") => request<CustomerOrder>(`/customer/orders/${encodeURIComponent(orderId)}/cancel`, { method: "POST", body: JSON.stringify({ reason }) }),
   customerRefundRequests: (orderId: string) => request<AfterSalesRequest[]>(`/customer/orders/${encodeURIComponent(orderId)}/refund-requests`),
   createCustomerRefundRequest: (orderId: string, input: { reasonCode: string; reasonText?: string; items: Array<{ orderItemId: string; quantity: number }> }) =>
     request<AfterSalesRequest>(`/customer/orders/${encodeURIComponent(orderId)}/refund-requests`, { method: "POST", body: JSON.stringify(input) }),
@@ -289,7 +290,7 @@ export const api = {
   updatePlatformMedia: (productId: string, mediaId: string, input: Record<string, unknown>) => request<any>(`/platform/products/${encodeURIComponent(productId)}/media/${encodeURIComponent(mediaId)}`, { method: "PATCH", body: JSON.stringify(input) }),
   platformOrders: () => request<any[]>("/platform/orders"),
   platformOrder: (id: string) => request<any>(`/platform/orders/${encodeURIComponent(id)}`),
-  platformPayments: (status?: string) => request<any>(`/platform/payments?${new URLSearchParams({ limit: "100", ...(status ? { status } : {}) })}`),
+  platformPayments: (status?: string, orderId?: string) => request<any>(`/platform/payments?${new URLSearchParams({ limit: "100", ...(status ? { status } : {}), ...(orderId ? { orderId } : {}) })}`),
   reconcilePayment: (id: string) => request<any>(`/platform/payments/${encodeURIComponent(id)}/reconcile`, { method: "POST" }),
   platformPickupPoints: () => request<any[]>("/platform/pickup-points"),
   createPickupPoint: (input: Record<string, unknown>) => request<any>("/platform/pickup-points", { method: "POST", body: JSON.stringify(input) }),

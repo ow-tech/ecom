@@ -36,6 +36,7 @@ export function DeliveryManagement({ permissions }: { permissions: string[] }) {
     finally { setLoading(false); }
   }, [pickupRead]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (!loading && window.location.hash === "#delivery-quotes") document.getElementById("delivery-quotes")?.scrollIntoView({ block: "start" }); }, [loading]);
   async function run(action: () => Promise<unknown>, success?: () => void) {
     if (busy) return;
     setBusy(true); setError(undefined); setNotice(undefined);
@@ -105,7 +106,7 @@ export function DeliveryManagement({ permissions }: { permissions: string[] }) {
           <div><Button type="submit" disabled={busy}>Create rate</Button></div>
         </form>}
       </Card>
-      <Card><SectionHeader title="Manual delivery quotes" description="A customer must accept a current quote before Paystack initialization." />
+      <Card><span id="delivery-quotes" className="scroll-mt-24" /><SectionHeader title="Manual delivery quotes" description="A customer must accept a current quote before Paystack initialization." />
         <div className="mt-4 space-y-3">{rows.quotes.map(q => <div key={q.id} className="flex flex-wrap justify-between gap-3 border-b border-border pb-3"><span className="text-sm">{q.order?.orderNumber ?? q.orderId} · {q.status} {q.amount && (q.currencyCode ? <Money currency={q.currencyCode} value={String(q.amount)} /> : <span className="tabular-nums">{String(q.amount)}</span>)}</span>{quoteManage && q.status === "PENDING" && <Button variant="outline" disabled={busy} onClick={() => setQuoteId(q.id)}>Provide quote</Button>}</div>)}</div>
         {quoteManage && quoteId && <form className="mt-5 grid gap-3 sm:grid-cols-3" onSubmit={saveQuote}>
           <FormField label="Quoted amount"><Input name="amount" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required/></FormField>

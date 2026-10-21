@@ -66,14 +66,14 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
     return { id: response.body.id, cookie: (response.headers["set-cookie"] as string[])[0].split(";", 1)[0] };
   }
 
-  async function createOrder(label: string, price = "10.00", quantity = 1, currencyCode = "USD"): Promise<OrderFixture> {
+  async function createOrder(label: string, price = "10.00", quantity = 1, currencyCode = "USD", origin: "LOCAL" | "OVERSEAS" = "LOCAL"): Promise<OrderFixture> {
     const customer = await account(`${label}-customer`);
     const owner = await account(`${label}-owner`);
     const organization = await http("POST", "/organizations", { name: label, slug: slug(label) }, owner.cookie);
-    const supplier = await prisma.supplier.create({ data: { organizationId: organization.body.id, displayName: `${label} supplier`, slug: slug(`${label}-supplier`), status: SupplierStatus.ACTIVE } });
+    const supplier = await prisma.supplier.create({ data: { organizationId: organization.body.id, displayName: `${label} supplier`, slug: slug(`${label}-supplier`), status: SupplierStatus.ACTIVE, overseasEnabled: origin === "OVERSEAS" } });
     const category = await prisma.category.create({ data: { name: `${label} category`, slug: slug(`${label}-category`) } });
     const product = await prisma.product.create({ data: { categoryId: category.id, name: `${label} product`, slug: slug(`${label}-product`), status: ProductStatus.ACTIVE } });
-    const listing = await prisma.supplierListing.create({ data: { supplierId: supplier.id, productId: product.id, price: new Prisma.Decimal(price), currencyCode, status: SupplierListingStatus.ACTIVE } });
+    const listing = await prisma.supplierListing.create({ data: { supplierId: supplier.id, productId: product.id, price: new Prisma.Decimal(price), currencyCode, status: SupplierListingStatus.ACTIVE, origin, overseasOrderable: origin === "OVERSEAS" ? quantity + 2 : 0, deliveryMinDays: origin === "OVERSEAS" ? 14 : null, deliveryMaxDays: origin === "OVERSEAS" ? 21 : null } });
     const location = await prisma.inventoryLocation.create({ data: { supplierId: supplier.id, name: `${label} location`, code: label.slice(-80).toUpperCase() } });
     const item = await prisma.inventoryItem.create({ data: { supplierListingId: listing.id, inventoryLocationId: location.id, onHand: quantity + 2 } });
     const address = await http("POST", "/customer/addresses", { recipientName: "Payment Customer", phone: "+254700000000", countryCode: "KE", region: "Nairobi", city: "Nairobi" }, customer.cookie);
@@ -131,6 +131,7 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
       await prisma.inventoryMovement.deleteMany({ where: { inventoryItem: { supplierListing: { supplier: { organization: { slug: { startsWith: prefix } } } } } } });
       await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.inventoryReservation.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.overseasReservation.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.orderDeliveryAddress.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.supplierOrderStatusHistory.deleteMany({ where: { supplierOrder: { orderId: { in: orderIds } } } });
@@ -289,13 +290,45 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
     expect(await prisma.inventoryItem.findUniqueOrThrow({ where: { id: fixture.itemId } })).toEqual(expect.objectContaining({ onHand: 3, reserved: 0 }));
   });
 
+  it("settles a successful overseas-only Paystack order and commits its orderable capacity once", async () => {
+    const fixture = await createOrder("overseas-settlement", "9.00", 1, "USD", "OVERSEAS");
+    const pending = await prisma.order.findUniqueOrThrow({ where: { id: fixture.orderId }, include: { reservations: true, overseasReservations: true } });
+    expect(pending.reservations).toHaveLength(0);
+    expect(pending.overseasReservations).toHaveLength(1);
+    const initializedPayment = await initialize(fixture);
+    expect(initializedPayment.status).toBe(201);
+    expect((await webhook(successEvent(initializedPayment.body.reference, fixture.totalMinor, fixture.customerEmail))).body.result).toBe("SETTLED");
+    expect(await prisma.order.findUniqueOrThrow({ where: { id: fixture.orderId } })).toEqual(expect.objectContaining({ status: "PAYMENT_CONFIRMED", paymentStatus: "PAID" }));
+    expect((await prisma.overseasReservation.findFirstOrThrow({ where: { orderId: fixture.orderId } })).status).toBe("CONSUMED");
+    const listing = await prisma.supplierListing.findUniqueOrThrow({ where: { id: pending.overseasReservations[0].supplierListingId } });
+    expect(listing.overseasReserved).toBe(0);
+    expect(listing.overseasCommitted).toBe(1);
+    expect((await webhook(successEvent(initializedPayment.body.reference, fixture.totalMinor, fixture.customerEmail))).body.result).toBe("SETTLED");
+    // A new signed event identity is idempotently settled; stock must not be consumed twice.
+    expect((await prisma.supplierListing.findUniqueOrThrow({ where: { id: listing.id } })).overseasCommitted).toBe(1);
+  });
+
   it("preserves captured-payment truth after cancellation without consuming released stock", async () => {
     const fixture = await createOrder("cancel-late", "6.00", 1);
     const initializedPayment = await initialize(fixture);
-    expect((await http("POST", `/customer/orders/${fixture.orderId}/cancel`, { reason: "Cancelled before webhook" }, fixture.customer.cookie)).status).toBe(201);
+    const originalCart = await prisma.checkoutAttempt.findFirstOrThrow({ where: { order: { id: fixture.orderId } }, select: { cartId: true } });
+    // The client may already have created a fresh empty cart after checkout prepared the order.
+    expect((await http("GET", "/customer/cart", undefined, fixture.customer.cookie)).status).toBe(200);
+    // A pending authorization must never be discarded just because the customer wants to leave.
+    expect((await http("POST", `/customer/orders/${fixture.orderId}/cancel`, { reason: "Cannot abandon unresolved authorization" }, fixture.customer.cookie)).status).toBe(409);
+    expect(await prisma.inventoryReservation.count({ where: { orderId: fixture.orderId, status: "ACTIVE" } })).toBeGreaterThan(0);
+    verification.set(initializedPayment.body.reference, { reference: initializedPayment.body.reference, providerStatus: "failed", amountMinor: fixture.totalMinor, currency: "USD", customerEmail: fixture.customerEmail, channel: "card" });
+    const verified = await http("POST", `/customer/orders/${fixture.orderId}/payments/${initializedPayment.body.paymentId}/verify`, undefined, fixture.customer.cookie);
+    expect(verified.body.status).toBe("FAILED");
+    expect((await http("POST", `/customer/orders/${fixture.orderId}/cancel`, { reason: "Failed authorization; abandon checkout" }, fixture.customer.cookie)).status).toBe(201);
+    const restoredCart = await prisma.cart.findUniqueOrThrow({ where: { id: originalCart.cartId }, include: { items: true } });
+    expect(restoredCart.status).toBe("ACTIVE");
+    expect(restoredCart.items).toHaveLength(1);
+    expect((await http("GET", "/customer/cart", undefined, fixture.customer.cookie)).body.items).toHaveLength(1);
     expect(await expiry.expireOrder(fixture.orderId)).toEqual({ expired: 0, orderExpired: false });
-    expect((await webhook(successEvent(initializedPayment.body.reference, fixture.totalMinor, fixture.customerEmail))).body.result).toBe("PAYMENT_REVIEW");
-    expect(await prisma.order.findUniqueOrThrow({ where: { id: fixture.orderId } })).toEqual(expect.objectContaining({ status: "PAYMENT_REVIEW", paymentStatus: "PAID_REVIEW" }));
+    // The provider has definitively failed this attempt; do not invent contradictory success evidence.
+    expect(await prisma.order.findUniqueOrThrow({ where: { id: fixture.orderId } })).toEqual(expect.objectContaining({ status: "CANCELLED", paymentStatus: "UNPAID" }));
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: initializedPayment.body.paymentId } })).status).toBe("FAILED");
     expect(await prisma.inventoryItem.findUniqueOrThrow({ where: { id: fixture.itemId } })).toEqual(expect.objectContaining({ onHand: 3, reserved: 0 }));
   });
 

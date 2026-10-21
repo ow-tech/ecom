@@ -18,7 +18,7 @@ const { api } = mocks;
 
 vi.mock("../lib/api", () => ({ api: mocks.api, ApiError: class ApiError extends Error {} }));
 vi.mock("../components/session-provider", () => ({ useSession: () => ({ session: mocks.session }) }));
-vi.mock("next/link", () => ({ default: ({ children }: { children: ReactNode }) => <>{children}</> }));
+vi.mock("next/link", () => ({ default: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a> }));
 
 import { SupplierWorkspace } from "../components/supplier-workspace";
 
@@ -42,6 +42,19 @@ describe("SupplierWorkspace", () => {
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("Stock attention")).toBeTruthy();
     expect(screen.queryByText("Active listings")).toBeNull();
+  });
+
+  it("links each authorized supplier KPI to filtered actionable records", async () => {
+    mocks.session = { organizations: [{ id: "a", permissions: ["catalogue.listings.read", "inventory.read", "orders.read", "fulfilment.update"] }] };
+    api.supplierOverview.mockResolvedValue(overview());
+    api.inventory.mockResolvedValue({ data: [] });
+    api.supplierOrders.mockResolvedValue([]);
+    render(<SupplierWorkspace organizationId="a" section="overview" />);
+    const listing = await screen.findByRole("link", { name: /Active listings/i });
+    expect(listing.getAttribute("href")).toBe("/supplier/a/listings?status=ACTIVE");
+    expect(screen.getByRole("link", { name: /Stock attention/i }).getAttribute("href")).toBe("/supplier/a/inventory?view=ATTENTION");
+    expect(screen.getByRole("link", { name: /Orders to prepare/i }).getAttribute("href")).toBe("/supplier/a/orders?status=PREPARING");
+    expect(screen.getByRole("link", { name: /Ready for handover/i }).getAttribute("href")).toBe("/supplier/a/fulfilment?status=READY");
   });
 
   it("keeps the newly selected organization when its older delayed request resolves last", async () => {

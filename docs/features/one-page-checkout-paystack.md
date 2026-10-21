@@ -153,3 +153,53 @@ pass.
   `UNPAID`; its only payment remains `UNKNOWN` with `NETWORK_ERROR`, no provider
   status and no initialization timestamp. No database state was changed by the
   inspection.
+
+
+## Provider readiness, customer recovery and saved account data (2026-10-21)
+
+The configured backend is NOT proof that the real Paystack merchant account or key works.
+A missing/placeholder/wrong-merchant `PAYSTACK_SECRET_KEY` may cause HTTP 401/403 or
+provider initialization rejection; the application never exposes the key to the browser.
+Use a real test-mode key from the correct Paystack business for sandbox runs.
+Live keys require merchant onboarding/activation and a separate authorized release.
+For local diagnostics, source `.env` privately, then run
+`pnpm --filter @ecom/backend paystack:test-check`: this sends a read-only
+balance request and checks authentication, but does not certify checkout
+currency/channel eligibility. Never share or commit the secret key.
+
+`PAYSTACK_CALLBACK_BASE_URL` must be the actual customer-facing frontend
+origin, and browser users must be able to open the callback
+`/checkout/payment/:orderId`. The callback is not settlement evidence.
+For webhook delivery, register the **public HTTPS** backend URL
+`/payments/paystack/webhook` in the corresponding Paystack merchant dashboard;
+`localhost` cannot receive Paystack events. The webhook verifies the raw
+HMAC signature before settlement. Real account activation, KES eligibility,
+card/mobile money channel permissions, and DNS/TLS/webhook reachability
+are external release gates not proven by CI.
+
+Customers can voluntarily abandon only an uncharged/definitively failed
+unpaid order. The UI calls the server-owned cancellation endpoint, which
+rejects orders with a PENDING, INITIALIZATION_PENDING, UNKNOWN or SUCCEEDED
+payment. A successful cancel releases physical and overseas reservations,
+then clears only that browser's stored checkout intent and returns to cart.
+Provider-unknown attempts must be verified or reviewed; never clear them
+as if they were failed. Late authoritative success after a cancelled order
+still enters PAYMENT_REVIEW rather than silently losing payment evidence.
+
+`/account` loads the customer's persisted `/customer/profile` and
+`/customer/addresses` and displays the saved contact fields and default
+delivery address. These customer-only APIs are not queried for workforce
+accounts. Sensitive payout destination data is a separate permission-controlled
+supplier finance domain and is not displayed in the customer account overview.
+
+## Operator error classification
+
+| Observation | What to check |
+| --- | --- |
+| HTTP 401/403, `CONFIGURATION_REJECTED` | Paystack merchant test key, environment and key ownership |
+| Provider HTTP rejection, `PROVIDER_REJECTED` | Supported currency, amount, enabled channel, merchant country |
+| `NETWORK_UNCERTAIN` or `UNKNOWN` | API reachability/timeouts and authoritative verification; never duplicate |
+| Hosted checkout opens but callback fails | `PAYSTACK_CALLBACK_BASE_URL` and frontend port/proxy |
+| Callback returns but payment remains pending | Provider verify evidence, signed webhook delivery, reconciliation worker |
+| M-Pesa option not visible | Order currency KES, merchant channel eligibility and `PAYSTACK_MPESA_ENABLED` |
+| Paid overseas order sent to review | Verify overseas reservation status and combined settlement invariants |

@@ -3,6 +3,7 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "../../../../lib/api";
 import { Alert, Button, Card, FormField, Input } from "../../../../components/ui";
+import { PasswordInput } from "../../../../components/password-input";
 
 function Activation() {
   const [token, setToken] = useState("");
@@ -39,7 +40,7 @@ function Activation() {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={newAccount} onChange={e => setNewAccount(e.target.checked)}/> I am creating my workforce account for the first time</label>
         {newAccount && <>
           <FormField label="Name (optional)"><Input autoComplete="name" value={displayName} maxLength={120} onChange={e => setDisplayName(e.target.value)}/></FormField>
-          <FormField label="Set your password"><Input type="password" autoComplete="new-password" minLength={12} maxLength={256} required value={password} onChange={e => setPassword(e.target.value)}/></FormField>
+          <FormField label="Set your password"><PasswordInput autoComplete="new-password" minLength={12} maxLength={256} required value={password} onChange={e => setPassword(e.target.value)}/></FormField>
         </>}
         <Button type="submit" loading={busy} disabled={!token || busy}>Accept invitation</Button>
       </form>}
