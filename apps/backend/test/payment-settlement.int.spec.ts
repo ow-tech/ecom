@@ -303,7 +303,8 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
     const listing = await prisma.supplierListing.findUniqueOrThrow({ where: { id: pending.overseasReservations[0].supplierListingId } });
     expect(listing.overseasReserved).toBe(0);
     expect(listing.overseasCommitted).toBe(1);
-    expect((await webhook(successEvent(initializedPayment.body.reference, fixture.totalMinor, fixture.customerEmail))).body.result).toBe("DUPLICATE");
+    expect((await webhook(successEvent(initializedPayment.body.reference, fixture.totalMinor, fixture.customerEmail))).body.result).toBe("SETTLED");
+    // A new signed event identity is idempotently settled; stock must not be consumed twice.
     expect((await prisma.supplierListing.findUniqueOrThrow({ where: { id: listing.id } })).overseasCommitted).toBe(1);
   });
 
@@ -325,8 +326,9 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
     expect(restoredCart.items).toHaveLength(1);
     expect((await http("GET", "/customer/cart", undefined, fixture.customer.cookie)).body.items).toHaveLength(1);
     expect(await expiry.expireOrder(fixture.orderId)).toEqual({ expired: 0, orderExpired: false });
-    expect((await webhook(successEvent(initializedPayment.body.reference, fixture.totalMinor, fixture.customerEmail))).body.result).toBe("PAYMENT_REVIEW");
-    expect(await prisma.order.findUniqueOrThrow({ where: { id: fixture.orderId } })).toEqual(expect.objectContaining({ status: "PAYMENT_REVIEW", paymentStatus: "PAID_REVIEW" }));
+    // The provider has definitively failed this attempt; do not invent contradictory success evidence.
+    expect(await prisma.order.findUniqueOrThrow({ where: { id: fixture.orderId } })).toEqual(expect.objectContaining({ status: "CANCELLED", paymentStatus: "UNPAID" }));
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: initializedPayment.body.paymentId } })).status).toBe("FAILED");
     expect(await prisma.inventoryItem.findUniqueOrThrow({ where: { id: fixture.itemId } })).toEqual(expect.objectContaining({ onHand: 3, reserved: 0 }));
   });
 
