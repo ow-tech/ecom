@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { SessionProvider } from "../components/session-provider";
 import { CartProvider } from "../components/cart-provider";
+import { CustomerNavigation } from "../components/customer-navigation";
 
 export const metadata: Metadata = {
   title: "Ecom Platform",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body><SessionProvider><CartProvider>{children}</CartProvider></SessionProvider></body>
+      <body><SessionProvider><CartProvider><CustomerNavigation />{children}</CartProvider></SessionProvider></body>
     </html>
   );
 }

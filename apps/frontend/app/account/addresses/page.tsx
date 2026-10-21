@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { CustomerAddressForm, addressLines } from "../../../components/customer-address";
 import { useSession } from "../../../components/session-provider";
-import { StorefrontHeader } from "../../../components/storefront-header";
 import { Alert, Button, EmptyState, ErrorState, PageHeader, Skeleton, StatusBadge, StorefrontContainer, Surface } from "../../../components/ui";
 import { api, type CustomerAddress } from "../../../lib/api";
 import { loginHref } from "../../../lib/auth-routing";
@@ -47,8 +46,8 @@ export default function AddressesPage() {
     catch (cause) { setNotice({ message: cause instanceof Error ? cause.message : "We could not delete this address.", tone: "error" }); }
     finally { setWorkingId(undefined); }
   };
-  if (sessionLoading || !session) return <><StorefrontHeader /><StorefrontContainer className="max-w-5xl"><Skeleton className="h-10 w-64" /></StorefrontContainer></>;
-  return <><StorefrontHeader /><StorefrontContainer className="max-w-5xl">
+  if (sessionLoading || !session) return <><StorefrontContainer className="max-w-5xl"><Skeleton className="h-10 w-64" /></StorefrontContainer></>;
+  return <><StorefrontContainer className="max-w-5xl">
     <PageHeader eyebrow="Customer account" title="My addresses" description="Manage reusable delivery details. Orders keep the address captured when checkout was placed." actions={<div className="flex gap-2"><Link className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted" href="/account">Account</Link><Button onClick={() => { setAdding(true); setEditing(undefined); setNotice(undefined); }}>Add address</Button></div>} />
     {notice && <div className="mt-5"><Alert tone={notice.tone}>{notice.message}</Alert></div>}
     {adding && <Surface className="mt-7"><h2 className="mb-5 text-lg font-bold">Add delivery address</h2><CustomerAddressForm onSaved={address => save(address, "Address saved.")} onCancel={() => setAdding(false)} /></Surface>}

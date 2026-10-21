@@ -35,7 +35,7 @@ export default function AccountPage() {
   const defaultAddress = details?.addresses.find(address => address.isDefault) ?? details?.addresses[0];
   const personName = details ? [details.profile.firstName, details.profile.lastName].filter(Boolean).join(" ") : "";
   return <main className="mx-auto max-w-5xl p-5 sm:p-8">
-    <PageHeader eyebrow="Your account" title={`Welcome, ${personName || session.displayName || "there"}`} description="Your saved information and authorized workspaces." actions={<SignOutButton />} />
+    <PageHeader eyebrow="Your account" title={`Welcome, ${personName || session.displayName || "there"}`} description="Your saved information and authorized workspaces." actions={<div className="flex flex-wrap items-center gap-3"><Link className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white" href="/products">Continue shopping</Link><SignOutButton /></div>} />
     <div className="mt-8 grid gap-5 md:grid-cols-2">
       {isCustomer && <Card>
         <h2 className="text-lg font-bold">Your saved details</h2>
