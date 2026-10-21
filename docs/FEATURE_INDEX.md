@@ -1,5 +1,11 @@
 # Feature Index
 
+## Persistent storefront navigation and responsive product cards
+
+Status: IMPLEMENTED_REMOTE — automated and real-browser verification gates remain.
+
+Documentation: [persistent-storefront-navigation-and-card-grid.md](features/persistent-storefront-navigation-and-card-grid.md)
+
 ## Authentication controls and actionable KPI drilldowns
 
 Status: IMPLEMENTED_VERIFICATION_PARTIAL — client/backend integration is committed; automated regression and authenticated browser QA are outstanding.
