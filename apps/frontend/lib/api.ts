@@ -237,6 +237,7 @@ export const api = {
   previewCheckout: (input: { fulfillmentMethod: typeof checkoutFulfillmentMethod.DELIVERY; addressId: string } | { fulfillmentMethod: typeof checkoutFulfillmentMethod.PICKUP; pickupPointId: string }) => request<CheckoutPreview>("/customer/checkout/preview", { method: "POST", body: JSON.stringify(input) }),
   prepareCheckout: (input: { fulfillmentMethod: typeof checkoutFulfillmentMethod.DELIVERY; addressId: string } | { fulfillmentMethod: typeof checkoutFulfillmentMethod.PICKUP; pickupPointId: string }, idempotencyKey: string) => request<CheckoutSummary>("/customer/checkout/prepare", { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify(input) }),
   customerOrders: () => request<CustomerOrderListItem[]>("/customer/orders"),
+  cancelCustomerOrder: (orderId: string, reason = "Customer abandoned failed checkout") => request<CustomerOrder>(`/customer/orders/${encodeURIComponent(orderId)}/cancel`, { method: "POST", body: JSON.stringify({ reason }) }),
   customerRefundRequests: (orderId: string) => request<AfterSalesRequest[]>(`/customer/orders/${encodeURIComponent(orderId)}/refund-requests`),
   createCustomerRefundRequest: (orderId: string, input: { reasonCode: string; reasonText?: string; items: Array<{ orderItemId: string; quantity: number }> }) =>
     request<AfterSalesRequest>(`/customer/orders/${encodeURIComponent(orderId)}/refund-requests`, { method: "POST", body: JSON.stringify(input) }),
