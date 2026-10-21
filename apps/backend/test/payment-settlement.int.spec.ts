@@ -131,6 +131,7 @@ describe("Paystack payment settlement and reservation expiry integration", () =>
       await prisma.inventoryMovement.deleteMany({ where: { inventoryItem: { supplierListing: { supplier: { organization: { slug: { startsWith: prefix } } } } } } });
       await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.inventoryReservation.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.overseasReservation.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.orderDeliveryAddress.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.supplierOrderStatusHistory.deleteMany({ where: { supplierOrder: { orderId: { in: orderIds } } } });
