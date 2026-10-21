@@ -138,6 +138,31 @@ describe("inventory foundation integration", () => {
     expect((await http("GET", `/organizations/${stock.organizationId}/inventory/locations/${stock.locationId}`, undefined, owner.cookie)).status).toBe(200);
   });
 
+  it("filters tenant-owned inventory attention and reserved status before paginating", async () => {
+    const owner = await account("attention-owner");
+    const stranger = await account("attention-stranger");
+    const stock = await fixture(owner, "attention-list");
+    await receive(owner, stock, 5);
+    const inventory = await item(stock);
+    await prisma.inventoryItem.update({ where: { id: inventory.id }, data: { reserved: 5 } });
+    const base = `/organizations/${stock.organizationId}/inventory`;
+    const attention = await http("GET", `${base}?view=ATTENTION&limit=1&page=1`, undefined, owner.cookie);
+    expect(attention.status).toBe(200);
+    expect(attention.body.total).toBe(1);
+    expect((attention.body.data as Array<{ available: number }>)[0].available).toBe(0);
+    const reserved = await http("GET", `${base}?view=RESERVED&limit=1&page=1`, undefined, owner.cookie);
+    expect(reserved.body.total).toBe(1);
+    const next = await http("GET", `${base}?view=ATTENTION&limit=1&page=2`, undefined, owner.cookie);
+    expect(next.body.total).toBe(1);
+    expect(next.body.data).toEqual([]);
+    await prisma.supplierListing.update({ where: { id: stock.listingId }, data: { status: "INACTIVE" } });
+    const inactive = await http("GET", `${base}?view=INACTIVE`, undefined, owner.cookie);
+    expect(inactive.body.total).toBe(1);
+    expect((inactive.body.data as Array<{ supplierListingId: string }>)[0].supplierListingId).toBe(stock.listingId);
+    expect((await http("GET", base, undefined, stranger.cookie)).status).toBe(403);
+    expect((await http("GET", `${base}?view=INVALID`, undefined, owner.cookie)).status).toBe(400);
+  });
+
   it("receives stock lazily and records physical movement with validated quantities", async () => {
     const owner = await account("receive-owner");
     const foreignOwner = await account("receive-foreign");
