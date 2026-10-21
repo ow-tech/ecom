@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { OrderPaymentStatus, OrderStatus, Prisma, SupplierOrderStatus } from "@prisma/client";
+import { OrderPaymentStatus, OrderStatus, PaymentStatus, Prisma, SupplierOrderStatus } from "@prisma/client";
 import { commerceConflict } from "../commerce/commerce-error";
 import { CustomerService } from "../customer/customer.service";
 import { InventoryService } from "../inventory/inventory.service";
@@ -45,6 +45,10 @@ export class OrdersService {
       if (!order) throw new NotFoundException("Order not found");
       if (order.status === OrderStatus.CANCELLED) return;
       if ((order.status !== OrderStatus.PENDING_PAYMENT && order.status !== OrderStatus.AWAITING_DELIVERY_QUOTE) || order.paymentStatus !== OrderPaymentStatus.UNPAID) throw commerceConflict("CHECKOUT_ALREADY_TERMINAL", "Only unpaid pending orders can be cancelled");
+      // An unresolved Paystack attempt might still settle asynchronously. Never cancel
+      // or release reserved inventory before the provider outcome is authoritative.
+      const unsettled = await tx.payment.count({ where: { orderId: order.id, status: { in: [PaymentStatus.INITIALIZATION_PENDING, PaymentStatus.PENDING, PaymentStatus.UNKNOWN, PaymentStatus.SUCCEEDED] } } });
+      if (unsettled > 0) throw commerceConflict("PAYMENT_NOT_RESOLVED", "Payment is still being confirmed. Check its status before cancelling the order.");
       const now = new Date();
       const changed = await tx.order.updateMany({ where: { id: order.id, status: order.status, paymentStatus: OrderPaymentStatus.UNPAID }, data: { status: OrderStatus.CANCELLED, cancelledAt: now } });
       if (changed.count !== 1) return;
