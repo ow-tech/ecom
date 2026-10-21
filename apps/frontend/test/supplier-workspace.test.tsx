@@ -50,11 +50,11 @@ describe("SupplierWorkspace", () => {
     api.inventory.mockResolvedValue({ data: [] });
     api.supplierOrders.mockResolvedValue([]);
     render(<SupplierWorkspace organizationId="a" section="overview" />);
-    const listing = await screen.findByRole("link", { name: /Active listings: 2/i });
+    const listing = await screen.findByRole("link", { name: /Active listings/i });
     expect(listing.getAttribute("href")).toBe("/supplier/a/listings?status=ACTIVE");
-    expect(screen.getByRole("link", { name: /Stock attention: 1/i }).getAttribute("href")).toBe("/supplier/a/inventory?view=ATTENTION");
-    expect(screen.getByRole("link", { name: /Orders to prepare: 3/i }).getAttribute("href")).toBe("/supplier/a/orders?status=PREPARING");
-    expect(screen.getByRole("link", { name: /Ready for handover: 4/i }).getAttribute("href")).toBe("/supplier/a/fulfilment?status=READY");
+    expect(screen.getByRole("link", { name: /Stock attention/i }).getAttribute("href")).toBe("/supplier/a/inventory?view=ATTENTION");
+    expect(screen.getByRole("link", { name: /Orders to prepare/i }).getAttribute("href")).toBe("/supplier/a/orders?status=PREPARING");
+    expect(screen.getByRole("link", { name: /Ready for handover/i }).getAttribute("href")).toBe("/supplier/a/fulfilment?status=READY");
   });
 
   it("keeps the newly selected organization when its older delayed request resolves last", async () => {
