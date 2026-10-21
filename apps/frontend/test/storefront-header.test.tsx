@@ -18,6 +18,8 @@ describe("StorefrontHeader", () => {
     expect(screen.getByRole("link", { name: "Cart, 3 items" }).getAttribute("href")).toBe("/cart");
     expect(screen.getByLabelText("3 cart items").textContent).toBe("3");
     expect(screen.getByRole("link", { name: "Account" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Shop" }).getAttribute("href")).toBe("/");
+    expect(screen.getByRole("link", { name: "Products" }).getAttribute("href")).toBe("/products");
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 });
