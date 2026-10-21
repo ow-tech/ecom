@@ -30,8 +30,9 @@ export function AuthForm({ mode, audience = "CUSTOMER" }: { mode: "login" | "reg
         ? workforceDestination(current, returnTo)
         : postAuthDestination(returnTo));
     } catch (cause) {
-      setError(cause instanceof ApiError || cause instanceof Error
-        ? cause.message : "We could not complete sign in. Please try again.");
+      setError(cause instanceof ApiError ? cause.message
+        : cause instanceof Error && cause.message.startsWith("Signed in, but the account context") ? cause.message
+        : "We could not reach the service. Please try again.");
     } finally { setLoading(false); }
   }
   return <form className="space-y-4" onSubmit={submit}>{error && <Alert tone="error">{error}</Alert>}{register && <FormField label="Name"><Input id="name" autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></FormField>}<FormField label="Email"><Input id="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></FormField><FormField label="Password"><PasswordInput id="password" autoComplete={register ? "new-password" : "current-password"} minLength={register ? 12 : undefined} required value={password} onChange={(event) => setPassword(event.target.value)} />{register && <p className="mt-1 text-xs text-foreground-muted">Use at least 12 characters.</p>}</FormField><Button type="submit" className="w-full" loading={loading}>{register ? "Create account" : "Sign in"}</Button></form>;
