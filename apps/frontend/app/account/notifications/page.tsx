@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { api, type AccountNotificationsPage, type AccountNotificationPreference } from "../../../lib/api";
 import { useSession } from "../../../components/session-provider";
 import { loginHref } from "../../../lib/auth-routing";
-import { StorefrontHeader } from "../../../components/storefront-header";
 import { Alert, Button, EmptyState, ErrorState, PageHeader, Skeleton, StatusBadge, StorefrontContainer, Surface } from "../../../components/ui";
 
 const categories = ["ORDER", "PAYMENT", "DELIVERY", "REFUND", "RETURN", "WARRANTY", "SUPPORT", "SUPPLIER", "FINANCE"];
@@ -67,7 +66,7 @@ export default function AccountNotificationsPage() {
     finally { setSavingCategory(undefined); }
   }
   if (!sessionLoading && !session) return null;
-  return <><StorefrontHeader /><StorefrontContainer className="max-w-4xl">
+  return <><StorefrontContainer className="max-w-4xl">
     <PageHeader eyebrow="Your account" title="Notifications" description="Order, payment, delivery and support updates from your Ecom account." actions={<Link href="/account" className="font-semibold text-secondary hover:underline">Back to account</Link>} />
     {actionError && <div className="mt-5"><Alert tone="error">{actionError}</Alert></div>}
     {sessionLoading || !session || (loading && !data) ? <Skeleton className="mt-7 h-56" /> : error ? <div className="mt-7"><ErrorState detail={error} retry={() => void refresh()} /></div> :
