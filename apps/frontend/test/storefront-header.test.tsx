@@ -15,6 +15,8 @@ describe("StorefrontHeader", () => {
     render(<StorefrontHeader />);
     const navigation = screen.getByRole("navigation", { name: "Storefront" });
     expect(navigation.parentElement?.className).toContain("sticky");
+    expect(navigation.parentElement?.className).toContain("z-40");
+    expect(navigation.className).toContain("flex-wrap");
     expect(screen.getByRole("link", { name: "Cart, 3 items" }).getAttribute("href")).toBe("/cart");
     expect(screen.getByLabelText("3 cart items").textContent).toBe("3");
     expect(screen.getByRole("link", { name: "Account" })).toBeTruthy();
