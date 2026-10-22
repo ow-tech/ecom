@@ -17,8 +17,8 @@ export function StorefrontHeader() {
   const { session, loading } = useSession(); const { count } = useCart(); const pathname = usePathname();
   const cartTarget = useRef<HTMLSpanElement>(null); const [arrived, setArrived] = useState(false); const arrive = useCallback(() => setArrived(true), []);
   useEffect(() => { if (!arrived) return; if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) cartTarget.current?.animate([{ transform: "scale(1)" }, { transform: "scale(1.13)", offset: .45 }, { transform: "scale(1)" }], { duration: 360, easing: "ease-out" }); const timer = window.setTimeout(() => setArrived(false), 400); return () => window.clearTimeout(timer); }, [arrived, count]);
-  return <header className="sticky top-0 z-30 border-b border-border bg-surface/95 shadow-sm backdrop-blur">
-    <nav className="mx-auto flex min-h-14 max-w-[94rem] items-center justify-between gap-2 px-4 sm:h-16 sm:px-5" aria-label="Storefront">
+  return <header className="sticky top-0 z-40 border-b border-border bg-surface/95 shadow-sm backdrop-blur">
+    <nav className="mx-auto flex min-h-14 max-w-[94rem] flex-wrap items-center justify-between gap-2 px-4 py-2 sm:h-16 sm:flex-nowrap sm:px-5 sm:py-0" aria-label="Storefront">
       <Link href="/" className="shrink-0 text-lg font-extrabold tracking-tight text-primary">Ecom<span className="text-accent">.</span></Link>
       <div className="flex items-center gap-1 sm:gap-2">
         <Link href="/" aria-current={pathname === "/" ? "page" : undefined} className="inline-flex min-h-10 items-center justify-center rounded-lg px-2 text-xs font-semibold text-foreground hover:bg-muted sm:text-sm">Shop</Link>
